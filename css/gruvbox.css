@@ -1,0 +1,152 @@
+/* ==========================================================================
+   GRUVBOX & NEOVIM COLOR TOKENS & DESIGN SYSTEM
+   ========================================================================== */
+
+:root {
+  color-scheme: dark light;
+
+  /* Gruvbox Dark (Default) */
+  --bg-hard: #1d2021;
+  --bg: #282828;
+  --bg-soft: #32302f;
+  --bg-card: #282828;
+  --bg-card-hover: #32302f;
+  --bg-surface: #3c3836;
+  --bg-surface-subtle: #32302f;
+  --bg-code: #1d2021;
+
+  --border: #3c3836;
+  --border-active: #665c54;
+  --border-focus: #fabd2f;
+
+  --fg: #ebdbb2;
+  --fg-bright: #fbf1c7;
+  --fg-muted: #a89984;
+  --fg-dim: #7c6f64;
+
+  /* Gruvbox Accent Palette */
+  --red: #fb4934;
+  --red-dim: #cc241d;
+  --green: #b8bb26;
+  --green-dim: #98971a;
+  --yellow: #fabd2f;
+  --yellow-dim: #d79921;
+  --blue: #83a598;
+  --blue-dim: #458588;
+  --purple: #d3869b;
+  --purple-dim: #b16286;
+  --aqua: #8ec07c;
+  --aqua-dim: #689d6a;
+  --orange: #fe8019;
+  --orange-dim: #d65d0e;
+
+  /* Neovim statusline colors */
+  --status-mode-bg: #b8bb26;
+  --status-mode-fg: #1d2021;
+  --status-bar-bg: #32302f;
+  --status-bar-fg: #ebdbb2;
+
+  /* Fonts */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Silkscreen', 'JetBrains Mono', monospace;
+
+  /* Shadows & Glow */
+  --glow-yellow: 0 0 14px rgba(250, 189, 47, 0.22);
+  --glow-green: 0 0 14px rgba(184, 187, 38, 0.22);
+  --glow-orange: 0 0 14px rgba(254, 128, 25, 0.22);
+  --glow-aqua: 0 0 14px rgba(142, 192, 124, 0.22);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Gruvbox Light Theme */
+[data-theme="gruvbox-light"] {
+  color-scheme: light;
+
+  --bg-hard: #f9f5d7;
+  --bg: #fbf1c7;
+  --bg-soft: #f2e5bc;
+  --bg-card: #fbf1c7;
+  --bg-card-hover: #f2e5bc;
+  --bg-surface: #ebdbb2;
+  --bg-surface-subtle: #f2e5bc;
+  --bg-code: #f2e5bc;
+
+  --border: #d5c4a1;
+  --border-active: #bdae93;
+  --border-focus: #b57614;
+
+  --fg: #3c3836;
+  --fg-bright: #282828;
+  --fg-muted: #665c54;
+  --fg-dim: #7c6f64;
+
+  --red: #cc241d;
+  --green: #79740e;
+  --yellow: #b57614;
+  --blue: #076678;
+  --purple: #8f3f71;
+  --aqua: #427b58;
+  --orange: #af3a03;
+
+  --status-mode-bg: #79740e;
+  --status-mode-fg: #fbf1c7;
+  --status-bar-bg: #ebdbb2;
+  --status-bar-fg: #3c3836;
+
+  --glow-yellow: 0 0 14px rgba(181, 118, 20, 0.18);
+  --glow-green: 0 0 14px rgba(121, 116, 14, 0.18);
+  --glow-orange: 0 0 14px rgba(175, 58, 3, 0.18);
+  --glow-aqua: 0 0 14px rgba(66, 123, 88, 0.18);
+  --card-shadow: 0 4px 15px rgba(60, 56, 54, 0.1);
+}
+
+/* Neovim TokyoNight / Cyberpunk Dark */
+[data-theme="neovim-dark"] {
+  color-scheme: dark;
+
+  --bg-hard: #16161e;
+  --bg: #1a1b26;
+  --bg-soft: #1f2335;
+  --bg-card: #1f2335;
+  --bg-card-hover: #24283b;
+  --bg-surface: #292e42;
+  --bg-surface-subtle: #1f2335;
+  --bg-code: #16161e;
+
+  --border: #292e42;
+  --border-active: #414868;
+  --border-focus: #7aa2f7;
+
+  --fg: #a9b1d6;
+  --fg-bright: #c0caf5;
+  --fg-muted: #787c99;
+  --fg-dim: #565f89;
+
+  --red: #f7768e;
+  --green: #9ece6a;
+  --yellow: #e0af68;
+  --blue: #7aa2f7;
+  --purple: #bb9af7;
+  --aqua: #7dcfff;
+  --orange: #ff9e64;
+
+  --status-mode-bg: #7aa2f7;
+  --status-mode-fg: #16161e;
+  --status-bar-bg: #1f2335;
+  --status-bar-fg: #c0caf5;
+
+  --glow-yellow: 0 0 14px rgba(224, 175, 104, 0.25);
+  --glow-green: 0 0 14px rgba(158, 206, 106, 0.25);
+  --glow-orange: 0 0 14px rgba(255, 158, 100, 0.25);
+  --glow-aqua: 0 0 14px rgba(125, 207, 255, 0.25);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
