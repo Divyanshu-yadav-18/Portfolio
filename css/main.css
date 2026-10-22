@@ -1480,3 +1480,227 @@ button {
     padding: 1.25rem;
   }
 }
+
+/* ==========================================================================
+   BLOG VIEW MODE — Separate full-page blog buffer
+   ========================================================================== */
+
+/* By default (main overview), hide the full blogs list so it acts as a separate page */
+.window-frame:not(.blog-view-active) #blogs {
+  display: none !important;
+}
+
+/* Teaser banner on main page */
+.blog-teaser-section {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.blog-teaser-box {
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--yellow);
+  border-radius: var(--radius-md);
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  transition: border-color var(--transition-fast);
+}
+
+.blog-teaser-box:hover {
+  border-color: var(--yellow);
+}
+
+.blog-teaser-info {
+  flex: 1;
+}
+
+.blog-teaser-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--yellow);
+  margin-bottom: 0.5rem;
+}
+
+.teaser-stat-pill {
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.45rem;
+}
+
+.blog-teaser-heading {
+  font-size: 1.1rem;
+  color: var(--fg-bright);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.blog-teaser-sub {
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.blog-teaser-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.blog-teaser-actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1.25rem;
+  font-weight: 700;
+}
+
+.cmd-pill-hint {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  color: var(--fg-bright);
+}
+
+@media (max-width: 768px) {
+  .blog-teaser-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .blog-teaser-actions {
+    align-items: flex-start;
+    width: 100%;
+  }
+  .blog-teaser-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* When blog-view is active, hide all main sections and teaser except #blogs */
+.window-frame.blog-view-active > .hero-section,
+.window-frame.blog-view-active > .blog-teaser-section,
+.window-frame.blog-view-active > .content-section:not(#blogs) {
+  display: none !important;
+}
+
+/* Full-page blog layout when in blog view mode */
+.window-frame.blog-view-active #blogs {
+  display: block !important;
+  border-bottom: none;
+  min-height: calc(100vh - 140px);
+}
+
+/* Blog view header banner */
+.blog-view-header {
+  display: none;
+  margin-bottom: 2rem;
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--yellow);
+  border-radius: var(--radius-md);
+}
+
+.window-frame.blog-view-active .blog-view-header {
+  display: block;
+}
+
+.blog-view-header-title {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--yellow);
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.blog-view-header-sub {
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+.blog-view-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.85rem;
+  font-size: 0.75rem;
+}
+
+.blog-view-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--fg-dim);
+}
+
+.blog-view-stat .stat-val {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* Blog back button */
+.blog-back-btn {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--bg-surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-bottom: 1rem;
+}
+
+.blog-back-btn:hover {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+.window-frame.blog-view-active .blog-back-btn {
+  display: inline-flex;
+}
+
+/* In blog view, make the grid single-column for a reading-focused layout */
+.window-frame.blog-view-active .blog-cards-grid {
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  max-width: 720px;
+}
+
+/* In blog view, blog cards get a slightly different look */
+.window-frame.blog-view-active .blog-card {
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.window-frame.blog-view-active .blog-card > div:first-child {
+  flex: 1;
+}
+
+@media (max-width: 680px) {
+  .window-frame.blog-view-active .blog-card {
+    flex-direction: column;
+  }
+}

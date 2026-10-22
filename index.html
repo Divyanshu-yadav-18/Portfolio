@@ -244,9 +244,55 @@
       </section>
 
       <!-- ==========================================
-           BLOGS & SYSTEMS DEEP DIVES
+           BLOG BUFFER TEASER (Shown on Main Page)
+           ========================================== -->
+      <section class="content-section blog-teaser-section" id="blogs-teaser">
+        <div class="blog-teaser-box">
+          <div class="blog-teaser-info">
+            <div class="blog-teaser-badge">
+              <span>📝</span>
+              <span class="teaser-buf-name">architecture_blogs.md</span>
+              <span class="teaser-stat-pill">4 articles · ~41 min</span>
+            </div>
+            <h3 class="blog-teaser-heading">Technical Writing & Systems Architecture Deep-Dives</h3>
+            <p class="blog-teaser-sub">
+              Engineering deep-dives into distributed cache invalidation, GPU deadlock prevention, custom Go HNSW vector index implementation, and fault-tolerant DAG task queues.
+            </p>
+          </div>
+          <div class="blog-teaser-actions">
+            <button class="btn-primary" id="open-blog-buffer-btn">
+              <span>📖 Open Blog Buffer</span>
+              <span class="cmd-pill-hint">:blogs</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           BLOGS & SYSTEMS DEEP DIVES (Dedicated Buffer)
            ========================================== -->
       <section class="content-section" id="blogs">
+        <!-- Back to main page button (visible only in blog view) -->
+        <button class="blog-back-btn" id="blog-back-btn" title="Return to overview">
+          ← :bd (back to overview)
+        </button>
+
+        <!-- Blog View Header (visible only in blog view mode) -->
+        <div class="blog-view-header">
+          <div class="blog-view-header-title">
+            <span>📝</span> architecture_blogs.md
+          </div>
+          <div class="blog-view-header-sub">
+            Engineering deep-dives into distributed cache invalidation, GPU deadlocks, vector graph search, and fault-tolerant job queues.
+            Each post dissects a real production problem with architecture diagrams and annotated code.
+          </div>
+          <div class="blog-view-stats">
+            <span class="blog-view-stat">📄 Articles: <span class="stat-val" id="blog-stat-count">4</span></span>
+            <span class="blog-view-stat">⏱ Total Read Time: <span class="stat-val" id="blog-stat-time">~41 min</span></span>
+            <span class="blog-view-stat">🏷 Categories: <span class="stat-val">4</span></span>
+          </div>
+        </div>
+
         <div class="section-title-bar">
           <div>
             <h2 class="section-heading">

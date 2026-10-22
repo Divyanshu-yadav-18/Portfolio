@@ -380,6 +380,10 @@ function escapeHtml(str) {
 function initBufferTabs() {
   const tabs = document.querySelectorAll(".buffer-tab");
   const dockItems = document.querySelectorAll(".dock-item");
+  const windowFrame = document.querySelector(".window-frame");
+  const blogBackBtn = document.getElementById("blog-back-btn");
+  const openBlogTeaserBtn = document.getElementById("open-blog-buffer-btn");
+  const statusFilename = document.getElementById("status-filename-val");
 
   function activate(targetId) {
     tabs.forEach(t => t.classList.toggle("active", t.dataset.target === targetId));
@@ -390,9 +394,23 @@ function initBufferTabs() {
       return;
     }
 
-    const section = document.getElementById(targetId);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
+    // Toggle dedicated blog view mode
+    if (targetId === "blogs") {
+      windowFrame.classList.add("blog-view-active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (statusFilename) statusFilename.textContent = "architecture_blogs.md";
+      if (window.location.hash !== "#blogs") {
+        history.replaceState(null, "", "#blogs");
+      }
+    } else {
+      windowFrame.classList.remove("blog-view-active");
+      if (window.location.hash === "#blogs") {
+        history.replaceState(null, "", window.location.pathname);
+      }
+      const section = document.getElementById(targetId);
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth" });
+      }
     }
   }
 
@@ -406,6 +424,29 @@ function initBufferTabs() {
       activate(item.dataset.target);
     });
   });
+
+  if (openBlogTeaserBtn) {
+    openBlogTeaserBtn.addEventListener("click", () => activate("blogs"));
+  }
+
+  // Blog back button returns to overview
+  if (blogBackBtn) {
+    blogBackBtn.addEventListener("click", () => {
+      activate("overview");
+    });
+  }
+
+  // Handle direct hash navigation (#blogs)
+  function checkHash() {
+    const hash = window.location.hash.replace("#", "");
+    if (hash === "blogs" || hash === "blog") {
+      activate("blogs");
+    }
+  }
+  window.addEventListener("hashchange", checkHash);
+  if (window.location.hash) {
+    checkHash();
+  }
 }
 
 /* --- Scroll Spy for Statusline and Active Buffers --- */
@@ -442,6 +483,12 @@ function initScrollSpy() {
       }
     });
 
+    const windowFrame = document.querySelector(".window-frame");
+    if (windowFrame && windowFrame.classList.contains("blog-view-active")) {
+      if (statusFilename) statusFilename.textContent = "architecture_blogs.md";
+      return;
+    }
+
     if (statusFilename && bufferFiles[currentSection]) {
       statusFilename.textContent = bufferFiles[currentSection];
     }
@@ -451,7 +498,7 @@ function initScrollSpy() {
 /* --- Neovim Command Palette (:) --- */
 const VIM_COMMANDS = [
   { cmd: ":projects", desc: "Jump to production projects", action: () => scrollToId("projects") },
-  { cmd: ":blogs", desc: "Jump to technical architecture blogs", action: () => scrollToId("blogs") },
+  { cmd: ":blogs", desc: "Open dedicated blog reader buffer", action: () => activateBlogView() },
   { cmd: ":skills", desc: "View categorized tech stack matrix", action: () => scrollToId("skills") },
   { cmd: ":cp", desc: "View Codeforces rating and algorithms info", action: () => scrollToId("competitive") },
   { cmd: ":resume", desc: "Open interactive resume viewer", action: () => openResumeModal() },
@@ -565,6 +612,18 @@ function closeCommandPalette() {
 function scrollToId(id) {
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth" });
+}
+
+function activateBlogView() {
+  const windowFrame = document.querySelector(".window-frame");
+  if (windowFrame) {
+    windowFrame.classList.add("blog-view-active");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  // Update buffer tabs
+  document.querySelectorAll(".buffer-tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.target === "blogs")
+  );
 }
 
 function showAllCommandsHelp() {

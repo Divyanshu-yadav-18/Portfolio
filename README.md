@@ -10,7 +10,7 @@ A retro, high-performance developer portfolio and technical blog inspired by **G
   - Color palettes: **Gruvbox Dark Hard** (Default), **Gruvbox Light**, and **Neovim TokyoNight Dark**.
   - Dynamic theme switching persisted across reloads via `localStorage` with FOUC prevention.
   - Neovim-inspired bottom **statusline** with live line numbers, scroll percentage, filetype indicators, and git branch tracking.
-  - Buffer tabs bar (`divyanshu.go`, `projects.rs`, `architecture_blogs.md`, `skills.json`, `codeforces_1584.cpp`, `resume.pdf`).
+  - Buffer tabs bar (`divyanshu.go`, `projects.rs`, `architecture_blogs.md`, `skills.json`, `competitive_programming.cpp`, `resume.pdf`).
 
 - **Interactive Neovim Command Palette (`:`)**:
   - Press `:` anywhere on the page (or click `[:cmd]`) to enter Vim Command mode.
