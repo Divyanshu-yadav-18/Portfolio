@@ -416,7 +416,7 @@ function initScrollSpy() {
     projects: "projects.rs",
     blogs: "architecture_blogs.md",
     skills: "skills.json",
-    competitive: "codeforces_rating.cpp"
+    competitive: "competitive_programming.cpp"
   };
 
   const statusFilename = document.getElementById("status-filename-val");
