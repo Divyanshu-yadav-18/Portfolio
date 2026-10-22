@@ -14,6 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initModals();
   initScrollSpy();
   initKeyboardNav();
+  initVimSearch();
+  initNvimFloatingWindow();
+  initMatrixEffect();
+  initStatuslineModeToggle();
 });
 
 /* --- Theme Management --- */
@@ -377,6 +381,51 @@ function escapeHtml(str) {
 }
 
 /* --- Neovim Buffer Tabs Navigation --- */
+const BUFFER_TABS = ["overview", "projects", "blogs", "skills", "competitive", "resume"];
+let globalActivateBuffer = null;
+
+function activateBuffer(targetId) {
+  if (globalActivateBuffer) {
+    globalActivateBuffer(targetId);
+  }
+}
+
+function switchBufferNext() {
+  const activeTab = document.querySelector(".buffer-tab.active");
+  const current = activeTab ? activeTab.dataset.target : "overview";
+  const idx = BUFFER_TABS.indexOf(current);
+  const nextIdx = (idx + 1) % BUFFER_TABS.length;
+  activateBuffer(BUFFER_TABS[nextIdx]);
+  showToastNotification(`[gt] Switched buffer: ${BUFFER_TABS[nextIdx]}`);
+}
+
+function switchBufferPrev() {
+  const activeTab = document.querySelector(".buffer-tab.active");
+  const current = activeTab ? activeTab.dataset.target : "overview";
+  const idx = BUFFER_TABS.indexOf(current);
+  const prevIdx = (idx - 1 + BUFFER_TABS.length) % BUFFER_TABS.length;
+  activateBuffer(BUFFER_TABS[prevIdx]);
+  showToastNotification(`[gT] Switched buffer: ${BUFFER_TABS[prevIdx]}`);
+}
+
+function activateBufferByIndex(index1Based) {
+  const idx = index1Based - 1;
+  if (idx >= 0 && idx < BUFFER_TABS.length) {
+    activateBuffer(BUFFER_TABS[idx]);
+    showToastNotification(`[${index1Based}gt] Switched to buffer: ${BUFFER_TABS[idx]}`);
+  }
+}
+
+function closeCurrentBuffer() {
+  const windowFrame = document.querySelector(".window-frame");
+  if (windowFrame && windowFrame.classList.contains("blog-view-active")) {
+    activateBuffer("overview");
+    showToastNotification(":bd — Unloaded architecture_blogs.md buffer");
+  } else {
+    showToastNotification(":bd — Already in main buffer (divyanshu.go)");
+  }
+}
+
 function initBufferTabs() {
   const tabs = document.querySelectorAll(".buffer-tab");
   const dockItems = document.querySelectorAll(".dock-item");
@@ -384,6 +433,7 @@ function initBufferTabs() {
   const blogBackBtn = document.getElementById("blog-back-btn");
   const openBlogTeaserBtn = document.getElementById("open-blog-buffer-btn");
   const statusFilename = document.getElementById("status-filename-val");
+  const statusFiletype = document.getElementById("status-filetype-val");
 
   function activate(targetId) {
     tabs.forEach(t => t.classList.toggle("active", t.dataset.target === targetId));
@@ -391,6 +441,8 @@ function initBufferTabs() {
 
     if (targetId === "resume") {
       openResumeModal();
+      if (statusFilename) statusFilename.textContent = "resume.pdf";
+      if (statusFiletype) statusFiletype.textContent = "PDF";
       return;
     }
 
@@ -399,11 +451,13 @@ function initBufferTabs() {
       windowFrame.classList.add("blog-view-active");
       window.scrollTo({ top: 0, behavior: "smooth" });
       if (statusFilename) statusFilename.textContent = "architecture_blogs.md";
+      if (statusFiletype) statusFiletype.textContent = "Markdown";
       if (window.location.hash !== "#blogs") {
         history.replaceState(null, "", "#blogs");
       }
     } else {
       windowFrame.classList.remove("blog-view-active");
+      if (statusFiletype) statusFiletype.textContent = "Go 1.24";
       if (window.location.hash === "#blogs") {
         history.replaceState(null, "", window.location.pathname);
       }
@@ -413,6 +467,8 @@ function initBufferTabs() {
       }
     }
   }
+
+  globalActivateBuffer = activate;
 
   tabs.forEach(tab => {
     tab.addEventListener("click", () => activate(tab.dataset.target));
@@ -472,6 +528,12 @@ function initScrollSpy() {
       statusPosition.textContent = `${progress}%  ${Math.round(scrollY / 20) + 1}:1`;
     }
 
+    const windowFrame = document.querySelector(".window-frame");
+    if (windowFrame && windowFrame.classList.contains("blog-view-active")) {
+      if (statusFilename) statusFilename.textContent = "architecture_blogs.md";
+      return;
+    }
+
     let currentSection = "overview";
     sections.forEach(secId => {
       const el = document.getElementById(secId);
@@ -483,12 +545,6 @@ function initScrollSpy() {
       }
     });
 
-    const windowFrame = document.querySelector(".window-frame");
-    if (windowFrame && windowFrame.classList.contains("blog-view-active")) {
-      if (statusFilename) statusFilename.textContent = "architecture_blogs.md";
-      return;
-    }
-
     if (statusFilename && bufferFiles[currentSection]) {
       statusFilename.textContent = bufferFiles[currentSection];
     }
@@ -497,20 +553,32 @@ function initScrollSpy() {
 
 /* --- Neovim Command Palette (:) --- */
 const VIM_COMMANDS = [
-  { cmd: ":projects", desc: "Jump to production projects", action: () => scrollToId("projects") },
-  { cmd: ":blogs", desc: "Open dedicated blog reader buffer", action: () => activateBlogView() },
-  { cmd: ":skills", desc: "View categorized tech stack matrix", action: () => scrollToId("skills") },
-  { cmd: ":cp", desc: "View Codeforces rating and algorithms info", action: () => scrollToId("competitive") },
-  { cmd: ":resume", desc: "Open interactive resume viewer", action: () => openResumeModal() },
-  { cmd: ":email", desc: "Copy Divyanshu's email address", action: () => copyEmailToClipboard() },
-  { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard", action: () => setTheme("gruvbox-dark") },
-  { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light theme", action: () => setTheme("gruvbox-light") },
-  { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight theme", action: () => setTheme("neovim-dark") },
+  { cmd: ":projects", desc: "Jump to production projects (projects.rs)", action: () => scrollToId("projects") },
+  { cmd: ":blogs", desc: "Open dedicated architecture blogs buffer (architecture_blogs.md)", action: () => activateBuffer("blogs") },
+  { cmd: ":skills", desc: "View categorized tech stack matrix (skills.json)", action: () => scrollToId("skills") },
+  { cmd: ":cp", desc: "View Codeforces rating & algorithms info (competitive_programming.cpp)", action: () => scrollToId("competitive") },
+  { cmd: ":resume", desc: "Open interactive printable resume viewer (resume.pdf)", action: () => openResumeModal() },
+  { cmd: ":checkhealth", desc: "Run comprehensive diagnostic health check on tech stack", action: () => showCheckhealthModal() },
+  { cmd: ":lazy", desc: "Inspect loaded Neovim plugins and startup profile", action: () => showLazyModal() },
+  { cmd: ":smile", desc: "Kisuke Urahara fortune & ASCII wisdom", action: () => showSmileModal() },
+  { cmd: ":matrix", desc: "Trigger fullscreen digital rain terminal breach", action: () => startMatrixRain() },
+  { cmd: ":zen", desc: "Toggle distraction-free Zen mode reading view", action: () => toggleZenMode() },
+  { cmd: ":bd", desc: "Unload current buffer and return to main overview", action: () => closeCurrentBuffer() },
+  { cmd: ":bn", desc: "Switch to next buffer tab [gt]", action: () => switchBufferNext() },
+  { cmd: ":bp", desc: "Switch to previous buffer tab [gT]", action: () => switchBufferPrev() },
+  { cmd: ":email", desc: "Copy Divyanshu's contact email to clipboard", action: () => copyEmailToClipboard() },
+  { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard palette", action: () => setTheme("gruvbox-dark") },
+  { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light palette", action: () => setTheme("gruvbox-light") },
+  { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight Dark palette", action: () => setTheme("neovim-dark") },
+  { cmd: ":noh", desc: "Clear Vim search match highlights", action: () => clearVimSearch() },
+  { cmd: ":so", desc: "Source init.lua runtime configuration", action: () => showToastNotification("[Neovim] Sourced init.lua successfully (0.42ms)") },
   { cmd: ":w", desc: "Save buffer state to local disk", action: () => showToastNotification("Portfolio state saved to localStorage [ok]") },
   { cmd: ":q", desc: "Quit editor", action: () => showToastNotification("E37: No write since last change! (Press Esc to close)") },
-  { cmd: ":q!", desc: "Force quit buffer", action: () => closeCommandPalette() },
-  { cmd: ":github", desc: "Open GitHub profile", action: () => window.open(PORTFOLIO_DATA.profile.github, "_blank") },
-  { cmd: ":help", desc: "Show all available Vim commands", action: () => showAllCommandsHelp() }
+  { cmd: ":q!", desc: "Force quit buffer and dismiss all modals", action: () => { closeAllModals(); closeCommandPalette(); } },
+  { cmd: ":wq", desc: "Write buffer and quit", action: () => { showToastNotification("Buffer written and synced. Have a great day! [ok]"); closeAllModals(); closeCommandPalette(); } },
+  { cmd: ":github", desc: "Open GitHub profile (@Divyanshu-yadav-18)", action: () => window.open(PORTFOLIO_DATA.profile.github, "_blank") },
+  { cmd: ":linkedin", desc: "Open LinkedIn profile (divyanshu-yadav)", action: () => window.open(PORTFOLIO_DATA.profile.linkedin, "_blank") },
+  { cmd: ":help", desc: "Show complete Neovim portfolio user manual (:h)", action: () => showHelpModal() }
 ];
 
 function initCommandPalette() {
@@ -584,10 +652,44 @@ function initCommandPalette() {
   }
 
   function executeCommand(cmdStr) {
-    const found = VIM_COMMANDS.find(c => c.cmd.toLowerCase() === cmdStr.toLowerCase());
-    if (found) {
-      closePalette();
-      found.action();
+    if (!cmdStr) return;
+    closePalette();
+
+    const normalized = cmdStr.startsWith(":") ? cmdStr : ":" + cmdStr;
+    const lower = normalized.toLowerCase();
+
+    // Handle parameterized commands
+    if (lower === ":b" || lower === ":buffers") {
+      showToastNotification(`Active buffers: ${BUFFER_TABS.join(", ")}`);
+      return;
+    }
+
+    if (lower.startsWith(":b ") || lower.startsWith(":buffer ")) {
+      const arg = lower.replace(/^:(b|buffer)\s+/, "").trim();
+      const num = parseInt(arg, 10);
+      if (!isNaN(num)) {
+        activateBufferByIndex(num);
+        return;
+      }
+      const match = BUFFER_TABS.find(b => b.startsWith(arg));
+      if (match) {
+        activateBuffer(match);
+        showToastNotification(`Switched to buffer: ${match}`);
+        return;
+      }
+    }
+
+    if (lower.startsWith(":theme ")) {
+      const themeArg = lower.replace(/^:theme\s+/, "").trim();
+      if (["gruvbox-dark", "gruvbox-light", "neovim-dark", "neovim"].includes(themeArg)) {
+        setTheme(themeArg === "neovim" ? "neovim-dark" : themeArg);
+        return;
+      }
+    }
+
+    const exactMatch = VIM_COMMANDS.find(c => c.cmd.toLowerCase() === lower);
+    if (exactMatch) {
+      exactMatch.action();
     } else {
       showToastNotification(`Not an editor command: ${cmdStr}. Try :help`);
     }
@@ -598,9 +700,36 @@ function updateNvimMode(mode) {
   const modeEl = document.getElementById("status-mode-val");
   if (modeEl) {
     modeEl.textContent = mode;
-    modeEl.style.background = mode === "COMMAND" ? "var(--orange)" : "var(--status-mode-bg)";
-    modeEl.style.color = "var(--status-mode-fg)";
+    modeEl.classList.remove("mode-insert", "mode-visual", "mode-command");
+    if (mode === "INSERT") modeEl.classList.add("mode-insert");
+    else if (mode === "VISUAL") modeEl.classList.add("mode-visual");
+    else if (mode === "COMMAND") modeEl.classList.add("mode-command");
   }
+}
+
+function initStatuslineModeToggle() {
+  const modeEl = document.getElementById("status-mode-val");
+  if (!modeEl) return;
+
+  const modes = ["NORMAL", "INSERT", "VISUAL", "COMMAND"];
+  modeEl.addEventListener("click", () => {
+    const current = modeEl.textContent.trim();
+    const nextIdx = (modes.indexOf(current) + 1) % modes.length;
+    const nextMode = modes[nextIdx];
+    if (nextMode === "COMMAND") {
+      const trigger = document.getElementById("open-cmd-btn");
+      if (trigger) trigger.click();
+    } else {
+      updateNvimMode(nextMode);
+      if (nextMode === "INSERT") {
+        showToastNotification("-- INSERT -- (Press <Esc> to return to NORMAL mode)");
+      } else if (nextMode === "VISUAL") {
+        showToastNotification("-- VISUAL LINE -- (Press <Esc> to return to NORMAL mode)");
+      } else {
+        showToastNotification("-- NORMAL --");
+      }
+    }
+  });
 }
 
 function closeCommandPalette() {
@@ -610,52 +739,577 @@ function closeCommandPalette() {
 }
 
 function scrollToId(id) {
+  const windowFrame = document.querySelector(".window-frame");
+  if (windowFrame && windowFrame.classList.contains("blog-view-active")) {
+    activateBuffer("overview");
+  }
   const el = document.getElementById(id);
   if (el) el.scrollIntoView({ behavior: "smooth" });
 }
 
 function activateBlogView() {
-  const windowFrame = document.querySelector(".window-frame");
-  if (windowFrame) {
-    windowFrame.classList.add("blog-view-active");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  // Update buffer tabs
-  document.querySelectorAll(".buffer-tab").forEach(t =>
-    t.classList.toggle("active", t.dataset.target === "blogs")
-  );
+  activateBuffer("blogs");
 }
 
-function showAllCommandsHelp() {
-  const list = VIM_COMMANDS.map(c => `${c.cmd} -> ${c.desc}`).join("\n");
-  alert(`Neovim Command Help:\n\n${list}\n\nPress Esc to dismiss.`);
+function toggleZenMode() {
+  document.body.classList.toggle("zen-mode");
+  const isZen = document.body.classList.contains("zen-mode");
+  showToastNotification(isZen ? "[Zen] Distraction-free mode enabled (:zen to exit)" : "[Zen] Standard mode restored");
 }
 
 /* --- Keyboard Shortcuts (Vim Style) --- */
 function initKeyboardNav() {
+  let lastKey = "";
+  let lastKeyTime = 0;
+
   window.addEventListener("keydown", (e) => {
-    // If typing in an input or textarea, skip
+    // If typing in an input or textarea, only handle Escape
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+      if (e.key === "Escape") {
+        document.activeElement.blur();
+        closeAllModals();
+        closeCommandPalette();
+        closeVimSearch();
+      }
       return;
     }
+
+    const now = Date.now();
+    const isRapid = (now - lastKeyTime) < 500;
 
     if (e.key === ":") {
       e.preventDefault();
       const trigger = document.getElementById("open-cmd-btn");
       if (trigger) trigger.click();
-    } else if (e.key === "Escape") {
+      return;
+    }
+
+    if (e.key === "/") {
+      e.preventDefault();
+      openVimSearch();
+      return;
+    }
+
+    if (e.key === "Escape") {
       closeAllModals();
       closeCommandPalette();
-    } else if (e.key === "j") {
+      closeVimSearch();
+      stopMatrixRain();
+      updateNvimMode("NORMAL");
+      return;
+    }
+
+    // Two-key motions: gg, zz, yy, gt, gT
+    if (e.key === "g") {
+      if (lastKey === "g" && isRapid) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        showToastNotification("[gg] Jumped to buffer top");
+        lastKey = "";
+        return;
+      }
+      lastKey = "g";
+      lastKeyTime = now;
+      return;
+    }
+
+    if (e.key === "t" && lastKey === "g" && isRapid) {
+      e.preventDefault();
+      switchBufferNext();
+      lastKey = "";
+      return;
+    }
+
+    if (e.key === "T" && lastKey === "g" && isRapid) {
+      e.preventDefault();
+      switchBufferPrev();
+      lastKey = "";
+      return;
+    }
+
+    if (e.key === "z") {
+      if (lastKey === "z" && isRapid) {
+        showToastNotification("[zz] Screen centered");
+        lastKey = "";
+        return;
+      }
+      lastKey = "z";
+      lastKeyTime = now;
+      return;
+    }
+
+    if (e.key === "y") {
+      if (lastKey === "y" && isRapid) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          showToastNotification("[yy] Yanked 1 line (URL) into * register");
+        });
+        lastKey = "";
+        return;
+      }
+      lastKey = "y";
+      lastKeyTime = now;
+      return;
+    }
+
+    // Direct buffer numbers 1gt to 6gt
+    if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
+      lastKey = e.key;
+      lastKeyTime = now;
+      return;
+    }
+    if (e.key === "g" && ["1", "2", "3", "4", "5", "6"].includes(lastKey) && isRapid) {
+      // User pressed 1g, wait for t
+      lastKey = lastKey + "g";
+      lastKeyTime = now;
+      return;
+    }
+    if (e.key === "t" && lastKey.length === 2 && lastKey.endsWith("g") && isRapid) {
+      const num = parseInt(lastKey[0], 10);
+      activateBufferByIndex(num);
+      lastKey = "";
+      return;
+    }
+
+    // Single key Vim motions
+    if (e.key === "j") {
       window.scrollBy({ top: 120, behavior: "smooth" });
     } else if (e.key === "k") {
       window.scrollBy({ top: -120, behavior: "smooth" });
     } else if (e.key === "G" && e.shiftKey) {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-    } else if (e.key === "g" && !e.shiftKey) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      showToastNotification("[G] Jumped to buffer bottom");
+    } else if (e.ctrlKey && e.key === "d") {
+      e.preventDefault();
+      window.scrollBy({ top: window.innerHeight * 0.5, behavior: "smooth" });
+    } else if (e.ctrlKey && e.key === "u") {
+      e.preventDefault();
+      window.scrollBy({ top: -window.innerHeight * 0.5, behavior: "smooth" });
+    } else if (e.key === "u" && !e.ctrlKey) {
+      showToastNotification("[u] Already at oldest change");
+    } else if (e.ctrlKey && e.key === "r") {
+      e.preventDefault();
+      showToastNotification("[<C-r>] Already at newest change");
+    } else if (e.key === "i" && !e.ctrlKey) {
+      updateNvimMode("INSERT");
+      showToastNotification("-- INSERT -- (Press <Esc> to return to NORMAL mode)");
+    } else if ((e.key === "v" || e.key === "V") && !e.ctrlKey) {
+      updateNvimMode("VISUAL");
+      showToastNotification("-- VISUAL LINE -- (Press <Esc> to return to NORMAL mode)");
+    } else if (e.key === "n" && !e.ctrlKey) {
+      navigateVimSearch(1);
+    } else if (e.key === "N") {
+      navigateVimSearch(-1);
+    } else {
+      lastKey = "";
     }
   });
+}
+
+/* --- Vim In-Page Search Feature (/) --- */
+let searchMatches = [];
+let searchCurrentIndex = -1;
+
+function initVimSearch() {
+  const bar = document.getElementById("vim-search-bar");
+  const input = document.getElementById("vim-search-input");
+  const prevBtn = document.getElementById("vim-search-prev-btn");
+  const nextBtn = document.getElementById("vim-search-next-btn");
+  const closeBtn = document.getElementById("vim-search-close-btn");
+
+  if (!bar || !input) return;
+
+  input.addEventListener("input", () => {
+    executeVimSearch(input.value.trim());
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        navigateVimSearch(-1);
+      } else {
+        navigateVimSearch(1);
+      }
+    } else if (e.key === "Escape") {
+      closeVimSearch();
+    }
+  });
+
+  if (prevBtn) prevBtn.addEventListener("click", () => navigateVimSearch(-1));
+  if (nextBtn) nextBtn.addEventListener("click", () => navigateVimSearch(1));
+  if (closeBtn) closeBtn.addEventListener("click", closeVimSearch);
+}
+
+function openVimSearch() {
+  const bar = document.getElementById("vim-search-bar");
+  const input = document.getElementById("vim-search-input");
+  if (bar && input) {
+    bar.style.display = "flex";
+    input.value = "";
+    input.focus();
+    updateNvimMode("COMMAND");
+  }
+}
+
+function closeVimSearch() {
+  const bar = document.getElementById("vim-search-bar");
+  if (bar) bar.style.display = "none";
+  clearVimSearch();
+  updateNvimMode("NORMAL");
+}
+
+function clearVimSearch() {
+  document.querySelectorAll("mark.vim-search-hl").forEach(mark => {
+    const parent = mark.parentNode;
+    if (parent) {
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    }
+  });
+  searchMatches = [];
+  searchCurrentIndex = -1;
+  const countEl = document.getElementById("vim-search-count");
+  if (countEl) countEl.textContent = "0/0";
+}
+
+function executeVimSearch(query) {
+  clearVimSearch();
+  if (!query || query.length < 2) return;
+
+  const root = document.querySelector(".window-frame");
+  if (!root) return;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      const parent = node.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      const tag = parent.tagName.toUpperCase();
+      if (["SCRIPT", "STYLE", "MARK", "BUTTON", "INPUT"].includes(tag)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  const textNodes = [];
+  let currentNode;
+  while ((currentNode = walker.nextNode())) {
+    textNodes.push(currentNode);
+  }
+
+  const cleanQuery = query.toLowerCase();
+  textNodes.forEach(node => {
+    const text = node.textContent;
+    const lower = text.toLowerCase();
+    const idx = lower.indexOf(cleanQuery);
+    if (idx !== -1) {
+      const before = text.substring(0, idx);
+      const match = text.substring(idx, idx + query.length);
+      const after = text.substring(idx + query.length);
+
+      const mark = document.createElement("mark");
+      mark.className = "vim-search-hl";
+      mark.textContent = match;
+
+      const frag = document.createDocumentFragment();
+      if (before) frag.appendChild(document.createTextNode(before));
+      frag.appendChild(mark);
+      if (after) frag.appendChild(document.createTextNode(after));
+
+      if (node.parentNode) {
+        node.parentNode.replaceChild(frag, node);
+        searchMatches.push(mark);
+      }
+    }
+  });
+
+  const countEl = document.getElementById("vim-search-count");
+  if (countEl) {
+    countEl.textContent = searchMatches.length > 0 ? `1/${searchMatches.length}` : "0/0";
+  }
+
+  if (searchMatches.length > 0) {
+    searchCurrentIndex = 0;
+    highlightActiveMatch();
+  }
+}
+
+function navigateVimSearch(direction) {
+  if (searchMatches.length === 0) return;
+  searchCurrentIndex = (searchCurrentIndex + direction + searchMatches.length) % searchMatches.length;
+  highlightActiveMatch();
+}
+
+function highlightActiveMatch() {
+  searchMatches.forEach((m, i) => {
+    m.classList.toggle("vim-search-hl-active", i === searchCurrentIndex);
+  });
+
+  const active = searchMatches[searchCurrentIndex];
+  if (active) {
+    active.scrollIntoView({ behavior: "smooth", block: "center" });
+    const countEl = document.getElementById("vim-search-count");
+    if (countEl) {
+      countEl.textContent = `${searchCurrentIndex + 1}/${searchMatches.length}`;
+    }
+  }
+}
+
+/* --- Neovim Floating Window Modal System --- */
+function initNvimFloatingWindow() {
+  const closeBtn = document.getElementById("nvim-float-close-btn");
+  const modal = document.getElementById("nvim-float-modal");
+
+  if (closeBtn) closeBtn.addEventListener("click", closeAllModals);
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeAllModals();
+    });
+  }
+}
+
+function openNvimFloat(title, filename, contentHtml) {
+  const modal = document.getElementById("nvim-float-modal");
+  const titleEl = document.getElementById("nvim-float-title");
+  const fileEl = document.getElementById("nvim-float-file");
+  const bodyEl = document.getElementById("nvim-float-body");
+
+  if (!modal) return;
+
+  if (titleEl) titleEl.textContent = title;
+  if (fileEl) fileEl.textContent = filename;
+  if (bodyEl) bodyEl.innerHTML = contentHtml;
+
+  modal.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function showCheckhealthModal() {
+  const html = `
+<div style="font-family: var(--font-mono); line-height: 1.6;">
+  <div style="color: var(--yellow); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
+    ==============================================================================
+    <span style="color: var(--fg-bright);">health#divyanshu#systems</span>
+  </div>
+  <div style="margin-left: 0.5rem; margin-bottom: 1.25rem;">
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Go Runtime</strong>: go1.24.0 linux/amd64 (Goroutines, atomic CAS, race-detector clean)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Databases</strong>: PostgreSQL 16 (pgvector, ACID transactions, connection pool)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>In-Memory Cache</strong>: Redis 7.2 (Lua script token-bucket rate limiters &amp; cluster pub/sub)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Vector Index</strong>: Custom Go HNSW (sub-millisecond cosine similarity semantic search)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Job Scheduling</strong>: DAG dependency graph engine with worker heartbeat failover</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Video Transcode</strong>: FFmpeg multi-bitrate HLS adaptive live stream pipelines</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Competitive Programming</strong>: Codeforces Specialist (Rating 1584 · Handle: Sh0ckwave · 500+ solved)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Education</strong>: IIIT Bhubaneswar (B.Tech CSE '27 · CGPA 7.9/10)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Avatar</strong>: Kisuke Urahara (12th Division Captain / Gotei 13) equipped</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Coffee Level</strong>: 98.4% (Freshly brewed, ready for production workloads)</div>
+  </div>
+
+  <div style="color: var(--yellow); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
+    ==============================================================================
+    <span style="color: var(--fg-bright);">health#neovim#editor</span>
+  </div>
+  <div style="margin-left: 0.5rem; margin-bottom: 1rem;">
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Editor</strong>: Neovim v0.10.4 (LuaJIT 2.1)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Color Scheme</strong>: Gruvbox Dark Hard / TokyoNight Dark</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Buffers</strong>: 6 loaded (divyanshu.go, projects.rs, architecture_blogs.md, skills.json, competitive_programming.cpp, resume.pdf)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Search Engine</strong>: Substring &amp; pattern search active (/)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Vim Keymaps</strong>: j/k nav, gg/G top-bottom, zz center, yy yank, gt/gT tabs, u undo</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Statusline</strong>: Mode, Git branch, UTF-8, line:col live tracking active</div>
+  </div>
+  <div style="color: var(--fg-dim); font-size: 0.75rem; margin-top: 1rem;">
+    Press &lt;Esc&gt; or type :q to close this buffer.
+  </div>
+</div>`;
+  openNvimFloat("nvim://checkhealth", "checkhealth.txt", html);
+}
+
+function showLazyModal() {
+  const html = `
+<div style="font-family: var(--font-mono); line-height: 1.6;">
+  <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+    <span style="font-weight: 700; color: var(--yellow);">💤 lazy.nvim</span>
+    <span style="color: var(--green); font-size: 0.78rem;">● 8 loaded / 0 failed [12.4ms startup]</span>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--blue); font-weight: 600;">● telescope.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Fuzzy search across projects &amp; architecture blogs</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--green); font-weight: 600;">● nvim-treesitter</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">AST parsing for Go, Rust, C++, Lua, Markdown</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--orange); font-weight: 600;">● harpoon</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Lightning buffer navigation &amp; quick marks</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--aqua); font-weight: 600;">● lualine.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Clean Neovim bottom statusline with git integration</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--yellow); font-weight: 600;">● gruvbox.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Warm retro terminal colors for maximum focus</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--purple); font-weight: 600;">● gitsigns.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Git branch status &amp; atomic commit tracking</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--red); font-weight: 600;">● urahara-bleach.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Kisuke tactical hat, Bankai concurrency gear &amp; tea</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
+      <span style="color: var(--blue); font-weight: 600;">● zen-mode.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Distraction-free reading environment</span>
+    </div>
+  </div>
+  <div style="color: var(--fg-dim); font-size: 0.75rem; margin-top: 1rem;">
+    Press &lt;Esc&gt; or type :q to close.
+  </div>
+</div>`;
+  openNvimFloat("nvim://lazy", "lazy.lua", html);
+}
+
+function showHelpModal() {
+  const html = `
+<div style="font-family: var(--font-mono); line-height: 1.6;">
+  <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--yellow); padding-bottom: 0.4rem; margin-bottom: 1rem;">
+    <span style="color: var(--yellow); font-weight: 700;">*help.txt*   NEOVIM PORTFOLIO USER MANUAL</span>
+    <span style="color: var(--fg-muted);">Divyanshu Yadav v2.4</span>
+  </div>
+
+  <h3 style="color: var(--orange); margin-top: 1rem; margin-bottom: 0.4rem;">1. BUFFER MANAGEMENT &amp; NAVIGATION</h3>
+  <pre style="background: var(--bg-surface); padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border); font-size: 0.78rem; overflow-x: auto;">
+:projects         Jump to production engineering projects (projects.rs)
+:blogs            Open dedicated architecture blogs reader (architecture_blogs.md)
+:skills           Inspect categorized tech stack (skills.json)
+:cp               View competitive programming rating &amp; CS fundamentals
+:resume           Open interactive printable resume viewer (resume.pdf)
+:bd, :bdelete     Unload blog buffer and return to main overview
+:bn, :bnext       Switch to next buffer tab [gt]
+:bp, :bprev       Switch to previous buffer tab [gT]
+:b &lt;target&gt;       Directly jump to buffer by name (e.g. :b projects, :b blogs, :b 1..6)
+  </pre>
+
+  <h3 style="color: var(--orange); margin-top: 1rem; margin-bottom: 0.4rem;">2. VIM MOTIONS &amp; KEYMAPS</h3>
+  <pre style="background: var(--bg-surface); padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border); font-size: 0.78rem; overflow-x: auto;">
+:                 Open command palette
+/                 Open Neovim search bar (highlight matches, n/N to navigate)
+j / k             Scroll buffer down / up by 120px
+Ctrl-d / Ctrl-u   Half-page scroll down / up
+gg / G            Jump to top of buffer / bottom of buffer
+zz                Center view on current position
+yy                Yank portfolio URL into clipboard register
+gt / gT           Cycle to next / previous buffer tab
+1gt ... 6gt       Jump directly to buffer tab 1 - 6
+u / Ctrl-r        Undo / Redo easter eggs
+i / v / Esc       Switch into INSERT / VISUAL / NORMAL mode
+  </pre>
+
+  <h3 style="color: var(--orange); margin-top: 1rem; margin-bottom: 0.4rem;">3. PLAYFUL EASTER EGGS</h3>
+  <pre style="background: var(--bg-surface); padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border); font-size: 0.78rem; overflow-x: auto;">
+:checkhealth      Run complete diagnostic health check on engineering stack
+:lazy             Inspect installed Neovim plugins and startup times
+:smile            Kisuke Urahara fortune &amp; ASCII art
+:matrix, :hack    Activate full-screen falling digital terminal matrix
+:zen              Toggle distraction-free Zen mode
+:theme &lt;name&gt;     Switch themes (gruvbox-dark, gruvbox-light, neovim)
+:email            Copy contact email (divyanshu13521984@gmail.com)
+:w, :q, :q!       Vim buffer management simulation
+  </pre>
+  <div style="color: var(--fg-dim); font-size: 0.75rem; margin-top: 1rem;">
+    Press &lt;Esc&gt; or type :q to close.
+  </div>
+</div>`;
+  openNvimFloat("nvim://help", "help.txt", html);
+}
+
+function showSmileModal() {
+  const html = `
+<div style="font-family: var(--font-mono); text-align: center; padding: 1.5rem 1rem;">
+  <pre style="color: var(--green); font-size: 0.95rem; line-height: 1.3; display: inline-block; text-align: left;">
+       .---.
+      /_____\\       👒 KISUKE URAHARA
+     ( ^ _ ^ )      "Shopkeeper &amp; Former 12th Division Captain"
+     /|  🍵  |\\
+    / |_____| \\
+      |     |
+  </pre>
+  <blockquote style="margin-top: 1.5rem; font-style: italic; color: var(--yellow); font-size: 1.05rem; border: none; padding: 0; line-height: 1.6;">
+    "There is nothing, but fear is a reflection of one's own weakness.<br>
+    Prepare for every eventuality, build systems that don't fail under pressure, and always drink your green tea."
+  </blockquote>
+  <div style="margin-top: 1rem; color: var(--fg-muted); font-size: 0.8rem;">
+    — Bleach (Tite Kubo) · Dedicated to high-throughput concurrency
+  </div>
+  <div style="color: var(--fg-dim); font-size: 0.75rem; margin-top: 1.5rem;">
+    Vim is great! Press &lt;Esc&gt; or type :q to dismiss.
+  </div>
+</div>`;
+  openNvimFloat("nvim://smile", "smile.txt", html);
+}
+
+/* --- Digital Matrix Terminal Rain (:hack / :matrix) --- */
+let matrixAnimationId = null;
+let matrixTimeoutId = null;
+
+function initMatrixEffect() {
+  const overlay = document.getElementById("matrix-overlay");
+  if (overlay) {
+    overlay.addEventListener("click", stopMatrixRain);
+  }
+}
+
+function startMatrixRain() {
+  const overlay = document.getElementById("matrix-overlay");
+  const canvas = document.getElementById("matrix-canvas");
+  if (!overlay || !canvas) return;
+
+  overlay.style.display = "flex";
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const characters = "0123456789ABCDEFｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜGOPOSTGRESQLREDISDOCKER";
+  const fontSize = 16;
+  const columns = Math.floor(canvas.width / fontSize);
+  const drops = Array(columns).fill(1);
+
+  showToastNotification("[matrix] System breach active! Press <Esc> to exit");
+
+  function draw() {
+    ctx.fillStyle = "rgba(10, 15, 10, 0.08)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#b8bb26"; // Gruvbox green
+    ctx.font = `${fontSize}px monospace`;
+
+    for (let i = 0; i < drops.length; i++) {
+      const text = characters.charAt(Math.floor(Math.random() * characters.length));
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+    matrixAnimationId = requestAnimationFrame(draw);
+  }
+
+  cancelAnimationFrame(matrixAnimationId);
+  draw();
+
+  clearTimeout(matrixTimeoutId);
+  matrixTimeoutId = setTimeout(() => {
+    stopMatrixRain();
+  }, 7000);
+}
+
+function stopMatrixRain() {
+  const overlay = document.getElementById("matrix-overlay");
+  if (overlay) overlay.style.display = "none";
+  cancelAnimationFrame(matrixAnimationId);
+  clearTimeout(matrixTimeoutId);
 }
 
 /* --- Resume Modal --- */
@@ -672,6 +1326,8 @@ function closeAllModals() {
     m.classList.remove("open");
   });
   document.body.style.overflow = "";
+  stopMatrixRain();
+  closeVimSearch();
 }
 
 function initModals() {

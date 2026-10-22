@@ -399,15 +399,25 @@
         </div>
       </section>
 
+      <!-- Vim Search Bar (/) -->
+      <div class="vim-search-bar" id="vim-search-bar" style="display: none;">
+        <span class="vim-search-prefix">/</span>
+        <input type="text" id="vim-search-input" class="vim-search-input" placeholder="Search page... (Enter to find, n/N next/prev, Esc to exit)" autocomplete="off" spellcheck="false">
+        <span class="vim-search-count" id="vim-search-count">0/0</span>
+        <button class="vim-search-btn" id="vim-search-prev-btn" title="Previous match (Shift+n)">▲</button>
+        <button class="vim-search-btn" id="vim-search-next-btn" title="Next match (n)">▼</button>
+        <button class="vim-search-close" id="vim-search-close-btn" title="Close search (Esc)">✕</button>
+      </div>
+
       <!-- ==========================================
            NEOVIM STATUSLINE (Bottom of Window)
            ========================================== -->
       <footer class="nvim-statusline" role="contentinfo">
-        <span class="status-section status-mode" id="status-mode-val">NORMAL</span>
+        <span class="status-section status-mode" id="status-mode-val" title="Click to cycle editor mode (NORMAL / INSERT / VISUAL / COMMAND)">NORMAL</span>
         <span class="status-section status-filename" id="status-filename-val">divyanshu.go</span>
         <span class="status-section status-git"> main</span>
         <span class="status-spacer"></span>
-        <span class="status-section status-filetype">Go 1.24</span>
+        <span class="status-section status-filetype" id="status-filetype-val">Go 1.24</span>
         <span class="status-section status-encoding">utf-8[unix]</span>
         <span class="status-section status-position" id="status-position-val">100%  1:1</span>
       </footer>
@@ -568,6 +578,40 @@
           </ul>
         </section>
       </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       NEOVIM FLOATING BUFFER WINDOW MODAL (:checkhealth, :lazy, :help, :smile)
+       ========================================== -->
+  <div class="article-modal-overlay" id="nvim-float-modal" role="dialog" aria-modal="true">
+    <div class="nvim-float-window">
+      <div class="nvim-float-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="color: var(--yellow);">󰞷</span>
+          <h2 class="nvim-float-title" id="nvim-float-title">nvim://checkhealth</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span class="nvim-float-hint">[Esc / :q to close]</span>
+          <button class="modal-close-btn" id="nvim-float-close-btn" aria-label="Close float window">[Esc] ✕</button>
+        </div>
+      </div>
+      <div class="nvim-float-body" id="nvim-float-body">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="nvim-float-statusline">
+        <span class="float-mode-badge">FLOAT</span>
+        <span id="nvim-float-file">checkhealth.txt</span>
+        <span style="margin-left: auto;">RO · utf-8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Digital Matrix Terminal Overlay (:hack / :matrix) -->
+  <div class="matrix-overlay" id="matrix-overlay" style="display: none;">
+    <canvas id="matrix-canvas"></canvas>
+    <div class="matrix-hud">
+      <span class="matrix-hud-tag">⚡ SYSTEM BREACH // KISUKE URAHARA LABS // PRESS [ESC] TO EXIT</span>
     </div>
   </div>
 

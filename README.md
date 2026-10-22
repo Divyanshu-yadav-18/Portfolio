@@ -12,18 +12,39 @@ A retro, high-performance developer portfolio and technical blog inspired by **G
   - Neovim-inspired bottom **statusline** with live line numbers, scroll percentage, filetype indicators, and git branch tracking.
   - Buffer tabs bar (`divyanshu.go`, `projects.rs`, `architecture_blogs.md`, `skills.json`, `competitive_programming.cpp`, `resume.pdf`).
 
-- **Interactive Neovim Command Palette (`:`)**:
+- **Interactive Neovim Command Palette (`:`) & Playful Buffer Environment**:
   - Press `:` anywhere on the page (or click `[:cmd]`) to enter Vim Command mode.
-  - Supports autocomplete and commands:
-    - `:projects` — Jump to featured production systems.
-    - `:blogs` / `:writing` — Jump to systems architecture blogs.
-    - `:skills` — View categorized technology stack matrix.
-    - `:resume` — Open interactive printable resume viewer.
+  - Supports autocomplete and full suite of Neovim commands:
+    - `:projects` — Jump to featured production systems (`projects.rs`).
+    - `:blogs` — Open dedicated technical architecture reader buffer (`architecture_blogs.md`).
+    - `:skills` — View categorized technology stack matrix (`skills.json`).
+    - `:cp` — View Codeforces rating & algorithms info (`competitive_programming.cpp`).
+    - `:resume` — Open interactive printable resume viewer (`resume.pdf`).
+    - `:checkhealth` — Real Neovim diagnostic report for Go runtime, databases, cache, and editor health.
+    - `:lazy` — Plugin manager buffer displaying loaded plugins and startup latency.
+    - `:smile` / `:fortune` — Kisuke Urahara ASCII art and witty tactical wisdom.
+    - `:matrix` / `:hack` — Fullscreen falling digital rain terminal breach animation.
+    - `:zen` — Distraction-free Zen reading mode (hides chrome, header, and floating docks).
+    - `:bd` / `:bdelete` — Buffer delete (unloads blog buffer and returns to main overview).
+    - `:bn` / `:bp` — Next and previous buffer switching (`[gt]` / `[gT]`).
+    - `:b <name|1-6>` — Jump directly to buffer by name or index.
     - `:email` — Copy contact email to clipboard with toast notification.
     - `:theme [gruvbox-dark | gruvbox-light | neovim]` — Switch UI theme.
-    - `:help` — List all available commands.
-    - `:w`, `:q`, `:q!` — Cheeky Vim editor state handlers.
-  - Vim keybindings: `j`/`k` to scroll down/up, `G` to bottom, `g` to top, `Esc` to close overlays.
+    - `:help` / `:h` — Complete Neovim manual and keybindings help buffer.
+    - `:noh` — Clear Vim search match highlights.
+    - `:w`, `:q`, `:q!`, `:wq`, `:so` — Authentic Vim editor state and sourcing handlers.
+  - **Vim Motions & Keymaps**:
+    - `/` — Interactive Neovim search bar with live text highlighting, `n`/`N` navigation.
+    - `j` / `k` — Scroll buffer down / up by 120px.
+    - `Ctrl-d` / `Ctrl-u` — Half-page scroll down / up.
+    - `gg` / `G` — Jump to top / bottom of buffer.
+    - `zz` — Center viewport on current position.
+    - `yy` — Yank portfolio URL to clipboard register (`*`).
+    - `gt` / `gT` — Cycle to next / previous buffer tab.
+    - `1gt` ... `6gt` — Jump directly to buffer tabs 1 through 6.
+    - `u` / `Ctrl-r` — Playful Undo / Redo history notifications.
+    - `i` / `v` / `Esc` — Toggle `-- INSERT --`, `-- VISUAL LINE --`, and `-- NORMAL --` editor modes.
+    - Statusline mode badge: clickable to cycle through `NORMAL`, `INSERT`, `VISUAL`, `COMMAND`.
 
 - **Systems Architecture Visualizers**:
   - Interactive topology and pipeline flowcharts for each production project:
