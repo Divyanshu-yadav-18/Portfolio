@@ -72,9 +72,13 @@
           <span>Open to Work</span>
         </span>
 
-        <button class="theme-pill-btn" id="theme-toggle-btn" title="Toggle Gruvbox Dark / Gruvbox Light / Neovim Dark" aria-label="Toggle theme">
+        <button class="theme-pill-btn" id="theme-toggle-btn" title="Toggle Gruvbox Dark / Gruvbox Light / Neovim Dark / Bankai" aria-label="Toggle theme">
           <span>🎨</span>
           <span id="current-theme-label">Gruvbox Dark</span>
+        </button>
+
+        <button class="cmd-hint-btn telescope-hint-btn" id="open-telescope-btn" title="Open Telescope File Finder (Ctrl+P / :Telescope)" aria-label="Open Telescope">
+          <span>🔭 Files</span>
         </button>
 
         <button class="cmd-hint-btn" id="open-cmd-btn" title="Open Vim command mode (or press ':')" aria-label="Open command palette">
@@ -132,7 +136,7 @@
 
         <div class="profile-card-grid">
           <!-- Retro Pixel Avatar with Bracket Focus -->
-          <div class="avatar-wrapper">
+          <div class="avatar-wrapper" id="profile-avatar-wrapper" title="Click to release Bankai (Benihime) ⚔" style="cursor: pointer;">
             <span class="avatar-bracket-tl"></span>
             <span class="avatar-bracket-tr"></span>
             <span class="avatar-bracket-bl"></span>
@@ -183,6 +187,13 @@
               <a href="https://codeforces.com/profile/Sh0ckwave" target="_blank" rel="noopener noreferrer" class="icon-btn" title="Codeforces (Sh0ckwave - Rating 1584)" aria-label="Codeforces">
                 <span style="font-weight: 800; font-size: 0.85rem; color: var(--orange);">CF</span>
               </a>
+            </div>
+
+            <!-- One-Click Curl Resume Snippet -->
+            <div class="curl-snippet-box" id="curl-resume-box" title="Click to copy curl command">
+              <span class="curl-prefix">$</span>
+              <span class="curl-cmd">curl -sL https://divyanshu-yadav.dev/resume.txt | less</span>
+              <button class="curl-copy-btn" id="curl-copy-btn" aria-label="Copy curl command">📋 copy</button>
             </div>
           </div>
         </div>
@@ -603,6 +614,73 @@
         <span class="float-mode-badge">FLOAT</span>
         <span id="nvim-float-file">checkhealth.txt</span>
         <span style="margin-left: auto;">RO · utf-8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       TELESCOPE FUZZY FINDER MODAL (Ctrl+p / :Telescope)
+       ========================================== -->
+  <div class="article-modal-overlay" id="telescope-modal" role="dialog" aria-modal="true" aria-label="Telescope File Finder">
+    <div class="telescope-window">
+      <div class="telescope-header">
+        <div class="telescope-title-bar">
+          <span style="color: var(--blue); font-size: 1.1rem;">🔭</span>
+          <span class="telescope-title">Telescope: Find Files</span>
+          <span class="telescope-hint">[Ctrl+P / &lt;leader&gt;ff]</span>
+        </div>
+        <button class="modal-close-btn" id="telescope-close-btn" aria-label="Close Telescope">[Esc] ✕</button>
+      </div>
+
+      <div class="telescope-layout">
+        <!-- Left: Prompt & Results -->
+        <div class="telescope-left-pane">
+          <div class="telescope-prompt-box">
+            <span class="telescope-prompt-prefix">&gt;</span>
+            <input type="text" id="telescope-input" class="telescope-input" placeholder="Type to filter files (e.g. go, redis, hnsw, cdc)..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="telescope-results" id="telescope-results-list">
+            <!-- Rendered dynamically -->
+          </div>
+          <div class="telescope-footer">
+            <span id="telescope-count">10 results</span>
+            <span class="telescope-shortcuts">[↑↓] Navigate · [Enter] Select</span>
+          </div>
+        </div>
+
+        <!-- Right: Code Preview -->
+        <div class="telescope-right-pane">
+          <div class="telescope-preview-header">
+            <span class="preview-file-icon" id="preview-file-icon">🐹</span>
+            <span class="preview-file-path" id="preview-file-path">cmd/llm-relay/main.go</span>
+            <span class="preview-file-badge" id="preview-file-badge">Go</span>
+          </div>
+          <div class="telescope-preview-content" id="telescope-preview-code">
+            <!-- Rendered code preview with line numbers -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       HARPOON QUICK-MENU MODAL (<leader>h / :harpoon)
+       ========================================== -->
+  <div class="article-modal-overlay" id="harpoon-modal" role="dialog" aria-modal="true" aria-label="Harpoon Quick Menu">
+    <div class="harpoon-window">
+      <div class="harpoon-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="color: var(--orange); font-size: 1.1rem;">󰛢</span>
+          <span class="harpoon-title">ThePrimeagen / Harpoon</span>
+          <span class="harpoon-hint">[&lt;leader&gt;h]</span>
+        </div>
+        <button class="modal-close-btn" id="harpoon-close-btn" aria-label="Close Harpoon">[Esc] ✕</button>
+      </div>
+      <div class="harpoon-body" id="harpoon-list">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="harpoon-footer">
+        <span>Press [1-5] to quick jump · [Esc] to dismiss</span>
       </div>
     </div>
   </div>

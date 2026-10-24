@@ -18,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   initNvimFloatingWindow();
   initMatrixEffect();
   initStatuslineModeToggle();
+  initTelescope();
+  initHarpoon();
+  initAvatarEasterEgg();
 });
 
 /* --- Theme Management --- */
@@ -32,6 +35,7 @@ function initTheme() {
       let next = "gruvbox-dark";
       if (current === "gruvbox-dark") next = "gruvbox-light";
       else if (current === "gruvbox-light") next = "neovim-dark";
+      else if (current === "neovim-dark") next = "bankai";
       else next = "gruvbox-dark";
       setTheme(next, true);
     });
@@ -46,7 +50,20 @@ function setTheme(themeName, showToast = true) {
   if (label) {
     if (themeName === "gruvbox-light") label.textContent = "Gruvbox Light";
     else if (themeName === "neovim-dark") label.textContent = "Neovim Dark";
+    else if (themeName === "bankai") label.textContent = "⚔ Bankai";
     else label.textContent = "Gruvbox Dark";
+  }
+
+  // Update statusline mode badge for bankai
+  const modeEl = document.getElementById("status-mode-val");
+  if (modeEl) {
+    if (themeName === "bankai") {
+      modeEl.textContent = "BANKAI";
+      modeEl.classList.add("mode-bankai");
+    } else {
+      if (modeEl.textContent === "BANKAI") modeEl.textContent = "NORMAL";
+      modeEl.classList.remove("mode-bankai");
+    }
   }
 
   // Update meta color-scheme
@@ -195,6 +212,19 @@ function renderProjects() {
       <div class="project-tech-tags">
         ${proj.tags.map(t => `<span class="tech-tag">${t}</span>`).join("")}
       </div>
+
+      <!-- Interactive Live Widget -->
+      <div class="project-widget" id="widget-${proj.id}">
+        <div class="widget-header">
+          <span class="widget-header-title">⚡ Live Simulation</span>
+          <button class="widget-btn widget-run-btn" data-widget-id="${proj.id}" data-running="false">
+            ▶ Run
+          </button>
+        </div>
+        <div class="widget-body" id="widget-body-${proj.id}">
+          <div style="color: var(--fg-dim); text-align: center; padding: 1.5rem 0;">Press ▶ Run to start the simulation</div>
+        </div>
+      </div>
     </article>
   `).join("");
 
@@ -203,6 +233,19 @@ function renderProjects() {
     btn.addEventListener("click", () => {
       const pid = btn.dataset.projectId;
       openProjectModal(pid);
+    });
+  });
+
+  // Attach interactive widget handlers
+  container.querySelectorAll(".widget-run-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const wid = btn.dataset.widgetId;
+      const isRunning = btn.dataset.running === "true";
+      if (isRunning) {
+        stopWidget(wid, btn);
+      } else {
+        startWidget(wid, btn);
+      }
     });
   });
 }
@@ -567,9 +610,21 @@ const VIM_COMMANDS = [
   { cmd: ":bn", desc: "Switch to next buffer tab [gt]", action: () => switchBufferNext() },
   { cmd: ":bp", desc: "Switch to previous buffer tab [gT]", action: () => switchBufferPrev() },
   { cmd: ":email", desc: "Copy Divyanshu's contact email to clipboard", action: () => copyEmailToClipboard() },
+  { cmd: ":telescope", desc: "🔭 Open Telescope fuzzy file finder (Ctrl+P / <leader>ff)", action: () => openTelescope() },
+  { cmd: ":find", desc: "🔭 Fuzzy find and live preview repository source code", action: () => openTelescope() },
+  { cmd: ":files", desc: "🔭 Browse all repository files in Telescope", action: () => openTelescope() },
+  { cmd: ":harpoon", desc: "󰛢 ThePrimeagen Harpoon buffer quick-jump (<leader>h)", action: () => openHarpoon() },
+  { cmd: ":oil", desc: "📁 Oil.nvim directory tree & buffer explorer (<leader>e)", action: () => openOilModal() },
+  { cmd: ":ex", desc: "📁 Explore repository project hierarchy", action: () => openOilModal() },
+  { cmd: ":blame", desc: "⌥ Toggle Git blame virtual text annotations", action: () => toggleGitBlame() },
+  { cmd: ":gitsigns", desc: "⌥ Toggle Git blame virtual text and diff signs", action: () => toggleGitBlame() },
+  { cmd: ":shop", desc: "🏪 Kisuke Urahara Shōten inventory & inventions", action: () => showShopModal() },
   { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard palette", action: () => setTheme("gruvbox-dark") },
   { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light palette", action: () => setTheme("gruvbox-light") },
   { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight Dark palette", action: () => setTheme("neovim-dark") },
+  { cmd: ":theme bankai", desc: "⚔ Switch to Bankai Crimson Reiatsu palette", action: () => activateBankai() },
+  { cmd: ":bankai", desc: "⚔ Activate Bankai — Crimson Reiatsu theme shift", action: () => activateBankai() },
+  { cmd: ":curl", desc: "Copy terminal curl command for resume.txt", action: () => copyCurlCommand() },
   { cmd: ":noh", desc: "Clear Vim search match highlights", action: () => clearVimSearch() },
   { cmd: ":so", desc: "Source init.lua runtime configuration", action: () => showToastNotification("[Neovim] Sourced init.lua successfully (0.42ms)") },
   { cmd: ":w", desc: "Save buffer state to local disk", action: () => showToastNotification("Portfolio state saved to localStorage [ok]") },
@@ -681,10 +736,44 @@ function initCommandPalette() {
 
     if (lower.startsWith(":theme ")) {
       const themeArg = lower.replace(/^:theme\s+/, "").trim();
+      if (themeArg === "bankai") {
+        activateBankai();
+        return;
+      }
       if (["gruvbox-dark", "gruvbox-light", "neovim-dark", "neovim"].includes(themeArg)) {
         setTheme(themeArg === "neovim" ? "neovim-dark" : themeArg);
         return;
       }
+    }
+
+    if (lower === ":h" || lower === ":help") {
+      showHelpModal();
+      return;
+    }
+
+    if (lower === ":t" || lower === ":telescope" || lower === ":find" || lower === ":files") {
+      openTelescope();
+      return;
+    }
+
+    if (lower === ":harpoon") {
+      openHarpoon();
+      return;
+    }
+
+    if (lower === ":oil" || lower === ":ex" || lower === ":explore") {
+      openOilModal();
+      return;
+    }
+
+    if (lower === ":blame" || lower === ":gitsigns" || lower === ":git") {
+      toggleGitBlame();
+      return;
+    }
+
+    if (lower === ":shop" || lower === ":urahara") {
+      showShopModal();
+      return;
     }
 
     const exactMatch = VIM_COMMANDS.find(c => c.cmd.toLowerCase() === lower);
@@ -776,6 +865,59 @@ function initKeyboardNav() {
 
     const now = Date.now();
     const isRapid = (now - lastKeyTime) < 500;
+
+    // Ctrl+P / Cmd+P Telescope Finder
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+      e.preventDefault();
+      openTelescope();
+      return;
+    }
+
+    // Harpoon numeric jump when Harpoon modal is open
+    const harpoonModal = document.getElementById("harpoon-modal");
+    if (harpoonModal && harpoonModal.classList.contains("open")) {
+      if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
+        e.preventDefault();
+        jumpHarpoon(parseInt(e.key, 10));
+        return;
+      }
+    }
+
+    // Leader key: Space
+    if (e.key === " ") {
+      e.preventDefault();
+      lastKey = "leader";
+      lastKeyTime = now;
+      showToastNotification("[<leader>] (f: Telescope · h: Harpoon · e: Oil · b: Blame)");
+      return;
+    }
+
+    if (lastKey === "leader" && isRapid) {
+      if (e.key === "f") {
+        e.preventDefault();
+        openTelescope();
+        lastKey = "";
+        return;
+      }
+      if (e.key === "h" || e.key === "a") {
+        e.preventDefault();
+        openHarpoon();
+        lastKey = "";
+        return;
+      }
+      if (e.key === "e") {
+        e.preventDefault();
+        openOilModal();
+        lastKey = "";
+        return;
+      }
+      if (e.key === "b") {
+        e.preventDefault();
+        toggleGitBlame();
+        lastKey = "";
+        return;
+      }
+    }
 
     if (e.key === ":") {
       e.preventDefault();
@@ -1372,6 +1514,14 @@ function initEmailCopy() {
       });
     });
   }
+
+  // Curl resume snippet copy
+  const curlCopyBtn = document.getElementById("curl-copy-btn");
+  if (curlCopyBtn) {
+    curlCopyBtn.addEventListener("click", () => {
+      copyCurlCommand();
+    });
+  }
 }
 
 function copyEmailToClipboard() {
@@ -1403,4 +1553,1146 @@ function showToastNotification(message) {
     toast.style.transition = "all 0.2s ease";
     setTimeout(() => toast.remove(), 250);
   }, 2800);
+}
+
+/* ==========================================================================
+   BANKAI ACTIVATION
+   ========================================================================== */
+function activateBankai() {
+  // Flash animation
+  const flash = document.createElement("div");
+  flash.className = "bankai-flash";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 1300);
+
+  // Set theme with delay for dramatic effect
+  setTimeout(() => {
+    setTheme("bankai", false);
+    showToastNotification("⚔ BANKAI — Benihime Crimson Princess activated. All systems drenched in reiatsu.");
+  }, 400);
+}
+
+/* ==========================================================================
+   CURL COMMAND COPY
+   ========================================================================== */
+function copyCurlCommand() {
+  const cmd = "curl -sL https://divyanshu-yadav.dev/resume.txt | less";
+  navigator.clipboard.writeText(cmd).then(() => {
+    showToastNotification("$ Copied curl command to clipboard!");
+  }).catch(() => {
+    showToastNotification(`$ ${cmd}`);
+  });
+}
+
+/* ==========================================================================
+   INTERACTIVE PROJECT WIDGET SIMULATIONS
+   ========================================================================== */
+const widgetIntervals = {};
+
+function startWidget(widgetId, btn) {
+  btn.dataset.running = "true";
+  btn.textContent = "■ Stop";
+  btn.classList.add("active");
+
+  if (widgetId === "llm-relay") {
+    startLLMRelayWidget();
+  } else if (widgetId === "distributed-job-queue") {
+    startJobQueueWidget();
+  } else if (widgetId === "stream-sync") {
+    startStreamSyncWidget();
+  }
+}
+
+function stopWidget(widgetId, btn) {
+  btn.dataset.running = "false";
+  btn.textContent = "▶ Run";
+  btn.classList.remove("active");
+
+  if (widgetIntervals[widgetId]) {
+    clearInterval(widgetIntervals[widgetId]);
+    delete widgetIntervals[widgetId];
+  }
+}
+
+/* --- LLM Relay: Live Request Log Simulator --- */
+function startLLMRelayWidget() {
+  const body = document.getElementById("widget-body-llm-relay");
+  if (!body) return;
+
+  let reqCount = 0;
+  let cacheHits = 0;
+  let totalLatency = 0;
+
+  const prompts = [
+    "What is the capital of France?",
+    "Explain quantum computing",
+    "Tell me the capital of France",
+    "How does photosynthesis work?",
+    "Summarize the French Revolution",
+    "What is machine learning?",
+    "Define quantum computing briefly",
+    "How do neural networks learn?",
+    "Explain photosynthesis process",
+    "What is Go programming language?",
+  ];
+
+  const providers = ["OpenAI", "Anthropic", "Gemini"];
+
+  body.innerHTML = `
+    <div class="widget-log" id="relay-log"></div>
+    <div class="widget-stats-bar">
+      <div class="widget-stat">Requests: <span class="widget-stat-val" id="relay-req-count">0</span></div>
+      <div class="widget-stat">Cache Hit: <span class="widget-stat-val" id="relay-hit-rate">0%</span></div>
+      <div class="widget-stat">Avg Latency: <span class="widget-stat-val" id="relay-avg-latency">0ms</span></div>
+    </div>
+  `;
+
+  const log = document.getElementById("relay-log");
+
+  function addLogEntry() {
+    reqCount++;
+    const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+    const isCacheHit = Math.random() < 0.35;
+    const isRateLimit = !isCacheHit && Math.random() < 0.08;
+    const isFallback = !isCacheHit && !isRateLimit && Math.random() < 0.1;
+    const provider = providers[Math.floor(Math.random() * providers.length)];
+
+    let badge, badgeClass, latency, detail;
+
+    if (isCacheHit) {
+      cacheHits++;
+      latency = (Math.random() * 0.8 + 0.1).toFixed(1);
+      badge = "CACHE HIT";
+      badgeClass = "hit";
+      detail = `HNSW cos=0.${Math.floor(Math.random() * 8 + 92)} → "${prompt.substring(0, 30)}..."`;
+    } else if (isRateLimit) {
+      latency = 0;
+      badge = "RATE LIMIT";
+      badgeClass = "rate-limit";
+      detail = `tenant-${Math.floor(Math.random() * 5 + 1)} exceeded 120 req/min bucket`;
+    } else if (isFallback) {
+      latency = Math.floor(Math.random() * 400 + 600);
+      badge = "FALLBACK";
+      badgeClass = "fallback";
+      detail = `${providers[0]} timeout → routed to ${providers[1]}`;
+    } else {
+      latency = Math.floor(Math.random() * 800 + 200);
+      badge = `SSE ${provider}`;
+      badgeClass = "stream";
+      detail = `"${prompt.substring(0, 35)}..." → ${Math.floor(Math.random() * 300 + 100)} tokens`;
+    }
+
+    totalLatency += parseFloat(latency);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-US", { hour12: false });
+
+    const line = document.createElement("div");
+    line.className = "widget-log-line";
+    line.innerHTML = `
+      <span class="log-time">${timeStr}</span>
+      <span class="log-badge ${badgeClass}">${badge}</span>
+      <span class="log-text">${detail}</span>
+      <span class="log-time">${latency}ms</span>
+    `;
+
+    log.insertBefore(line, log.firstChild);
+    if (log.children.length > 12) log.removeChild(log.lastChild);
+
+    // Update stats
+    document.getElementById("relay-req-count").textContent = reqCount;
+    const hitRate = Math.round((cacheHits / reqCount) * 100);
+    const hitEl = document.getElementById("relay-hit-rate");
+    hitEl.textContent = hitRate + "%";
+    hitEl.className = `widget-stat-val ${hitRate > 25 ? "" : "warn"}`;
+
+    const avgLatency = Math.round(totalLatency / reqCount);
+    const latEl = document.getElementById("relay-avg-latency");
+    latEl.textContent = avgLatency + "ms";
+    latEl.className = `widget-stat-val ${avgLatency < 300 ? "" : avgLatency < 600 ? "warn" : "danger"}`;
+  }
+
+  addLogEntry();
+  widgetIntervals["llm-relay"] = setInterval(addLogEntry, 1800);
+}
+
+/* --- Job Queue: DAG State Machine Simulator --- */
+function startJobQueueWidget() {
+  const body = document.getElementById("widget-body-distributed-job-queue");
+  if (!body) return;
+
+  const jobs = [
+    { id: "A", name: "Video Ingest", deps: [], status: "queued" },
+    { id: "B", name: "Audio Normalize", deps: [], status: "queued" },
+    { id: "C", name: "Transcode 1080p", deps: ["A"], status: "pending" },
+    { id: "D", name: "Transcode 720p", deps: ["A"], status: "pending" },
+    { id: "E", name: "Merge & Package", deps: ["C", "D", "B"], status: "pending" },
+  ];
+
+  function renderJobs() {
+    body.innerHTML = `
+      <div class="job-pipeline">
+        ${jobs.map(job => `
+          <div class="job-node">
+            <div class="job-icon ${job.status}"></div>
+            <span class="job-name">${job.name}</span>
+            <span class="job-status ${job.status}">${job.status}</span>
+            ${job.deps.length ? `<span style="color:var(--fg-dim);font-size:0.65rem;">← ${job.deps.join(", ")}</span>` : ""}
+          </div>
+        `).join("")}
+      </div>
+      <div class="widget-stats-bar">
+        <div class="widget-stat">Workers: <span class="widget-stat-val">3 active</span></div>
+        <div class="widget-stat">Heartbeat: <span class="widget-stat-val">5s TTL</span></div>
+      </div>
+    `;
+  }
+
+  renderJobs();
+
+  let step = 0;
+  const transitions = [
+    () => { jobs[0].status = "running"; jobs[1].status = "running"; },
+    () => { jobs[1].status = "done"; },
+    () => { jobs[0].status = "done"; jobs[2].status = "queued"; jobs[3].status = "queued"; },
+    () => { jobs[2].status = "running"; jobs[3].status = "running"; },
+    () => { jobs[3].status = "done"; },
+    () => { jobs[2].status = "done"; jobs[4].status = "queued"; },
+    () => { jobs[4].status = "running"; },
+    () => { jobs[4].status = "done"; showToastNotification("[DAG] Pipeline complete — all 5 tasks succeeded"); },
+    () => {
+      // Reset cycle
+      jobs.forEach(j => { j.status = j.deps.length ? "pending" : "queued"; });
+      step = -1;
+    },
+  ];
+
+  widgetIntervals["distributed-job-queue"] = setInterval(() => {
+    if (step < transitions.length) {
+      transitions[step]();
+      step++;
+      renderJobs();
+    }
+  }, 1500);
+}
+
+/* --- StreamSync: Playback Sync Visualizer --- */
+function startStreamSyncWidget() {
+  const body = document.getElementById("widget-body-stream-sync");
+  if (!body) return;
+
+  const clients = [
+    { label: "Host", cls: "host", progress: 0, drift: 0 },
+    { label: "Client 1", cls: "client-1", progress: 0, drift: 0 },
+    { label: "Client 2", cls: "client-2", progress: 0, drift: 0 },
+    { label: "Client 3", cls: "client-3", progress: 0, drift: 0 },
+  ];
+
+  const totalDuration = 180; // 3 minutes simulated
+  let elapsed = 0;
+
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function renderSync() {
+    const maxDrift = Math.max(...clients.slice(1).map(c => Math.abs(c.drift)));
+
+    body.innerHTML = `
+      <div class="sync-display">
+        ${clients.map(c => `
+          <div class="sync-client-row">
+            <span class="sync-client-label">${c.label}</span>
+            <div class="sync-progress-track">
+              <div class="sync-progress-fill ${c.cls}" style="width: ${c.progress}%"></div>
+            </div>
+            <span class="sync-time-label">${formatTime((c.progress / 100) * totalDuration)}</span>
+          </div>
+        `).join("")}
+      </div>
+      <div class="sync-drift-bar">
+        <div class="widget-stat">Max Drift: <span class="drift-val ${maxDrift < 30 ? 'good' : 'warn'}">${maxDrift}ms</span></div>
+        <div class="widget-stat">Bitrate: <span class="widget-stat-val">1080p adaptive</span></div>
+        <div class="widget-stat">Clients: <span class="widget-stat-val">4 synced</span></div>
+      </div>
+    `;
+  }
+
+  renderSync();
+
+  widgetIntervals["stream-sync"] = setInterval(() => {
+    elapsed += 1;
+    const hostProgress = Math.min(100, (elapsed / totalDuration) * 100);
+    clients[0].progress = hostProgress;
+    clients[0].drift = 0;
+
+    // Other clients track host with slight jitter drift
+    for (let i = 1; i < clients.length; i++) {
+      const jitter = (Math.random() - 0.5) * 0.8;
+      clients[i].progress = Math.max(0, Math.min(100, hostProgress + jitter));
+      clients[i].drift = Math.abs(Math.round(jitter * 40));
+
+      // Simulate occasional late-joiner catch-up burst
+      if (elapsed === 5 && i === 2) {
+        clients[i].progress = hostProgress - 3;
+        clients[i].drift = 120;
+      }
+      if (elapsed === 6 && i === 2) {
+        clients[i].drift = 45;
+      }
+      if (elapsed === 7 && i === 2) {
+        clients[i].drift = 12;
+      }
+    }
+
+    if (elapsed >= totalDuration) {
+      elapsed = 0;
+      clients.forEach(c => { c.progress = 0; c.drift = 0; });
+    }
+
+    renderSync();
+  }, 500);
+}
+
+/* ==========================================================================
+   AVATAR EASTER EGG (Click Kisuke Urahara -> Bankai)
+   ========================================================================== */
+function initAvatarEasterEgg() {
+  const avatarWrapper = document.getElementById("profile-avatar-wrapper");
+  if (avatarWrapper) {
+    avatarWrapper.addEventListener("click", () => {
+      activateBankai();
+    });
+  }
+}
+
+/* ==========================================================================
+   TELESCOPE FUZZY FILE FINDER (Ctrl+p / :Telescope)
+   ========================================================================== */
+const TELESCOPE_FILES = [
+  {
+    path: "cmd/llm-relay/main.go",
+    name: "main.go",
+    category: "Go · Gateway Entrypoint",
+    icon: "🐹",
+    language: "go",
+    content: `package main
+
+import (
+    "context"
+    "log"
+    "net/http"
+    "os"
+    "time"
+
+    "github.com/go-chi/chi/v5"
+    "github.com/go-chi/chi/v5/middleware"
+    "github.com/Divyanshu-yadav-18/llm_relay/internal/cache"
+    "github.com/Divyanshu-yadav-18/llm_relay/internal/limiter"
+    "github.com/Divyanshu-yadav-18/llm_relay/internal/relay"
+)
+
+func main() {
+    log.Println("[INFO] Booting LLM Relay Gateway v1.4.0...")
+
+    // 1. Initialize Custom HNSW Vector Semantic Cache (dim: 1536)
+    hnswCache := cache.NewHNSWCache(1536, 16, 200, 0.92)
+    log.Printf("[INFO] HNSW Vector Index ready (threshold=%.2f)\\n", 0.92)
+
+    // 2. Setup Redis Token Bucket Rate Limiter
+    redisLimiter := limiter.NewRedisTokenBucket("redis:6379", 120, time.Minute)
+
+    // 3. Register Multi-Provider Relay Handlers (OpenAI, Anthropic, Gemini)
+    router := chi.NewRouter()
+    router.Use(middleware.RequestID)
+    router.Use(middleware.RealIP)
+    router.Use(middleware.Logger)
+    router.Use(middleware.Recoverer)
+
+    router.Post("/v1/chat/completions", relay.HandleChatCompletion(hnswCache, redisLimiter))
+    router.Get("/metrics", relay.MetricsHandler())
+
+    srv := &http.Server{
+        Addr:         ":8080",
+        Handler:      router,
+        ReadTimeout:  10 * time.Second,
+        WriteTimeout: 60 * time.Second,
+    }
+
+    log.Println("[INFO] LLM Relay listening on :8080")
+    if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+        log.Fatalf("[FATAL] Listen failed: %v", err)
+    }
+}`
+  },
+  {
+    path: "internal/cache/hnsw.go",
+    name: "hnsw.go",
+    category: "Go · Vector Algorithm",
+    icon: "⚡",
+    language: "go",
+    content: `package cache
+
+import (
+    "math"
+    "sync"
+)
+
+// HNSWGraph implements Hierarchical Navigable Small World vector search
+type HNSWGraph struct {
+    dim        int
+    m          int     // max edges per node
+    efSearch   int     // search exploration factor
+    threshold  float32 // cosine similarity match threshold
+    entryPoint *Node
+    layers     []*Layer
+    mu         sync.RWMutex
+}
+
+type Node struct {
+    ID     string
+    Vector []float32
+    Data   []byte
+    Edges  map[int][]*Node // layer -> neighbor nodes
+}
+
+// CosineSimilarity with loop unrolling for zero-allocation dot products
+func CosineSimilarity(a, b []float32) float32 {
+    var dot, normA, normB float32
+    n := len(a)
+    for i := 0; i < n; i += 4 {
+        dot   += a[i]*b[i]     + a[i+1]*b[i+1] + a[i+2]*b[i+2] + a[i+3]*b[i+3]
+        normA += a[i]*a[i]     + a[i+1]*a[i+1] + a[i+2]*a[i+2] + a[i+3]*a[i+3]
+        normB += b[i]*b[i]     + b[i+1]*b[i+1] + b[i+2]*b[i+2] + b[i+3]*b[i+3]
+    }
+    return dot / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
+}
+
+// SearchLayer traverses proximity layers to find top-K nearest vectors
+func (g *HNSWGraph) SearchLayer(query []float32, ep *Node, ef int, lc int) []*Node {
+    v := make(map[*Node]bool)
+    C := NewCandidateQueue()
+    W := NewNearestQueue(ef)
+
+    v[ep] = true
+    C.Push(ep, CosineSimilarity(query, ep.Vector))
+    W.Push(ep, CosineSimilarity(query, ep.Vector))
+
+    for C.Len() > 0 {
+        curr := C.Pop()
+        if curr.dist < W.Furthest().dist {
+            break
+        }
+        for _, neighbor := range curr.node.Edges[lc] {
+            if !v[neighbor] {
+                v[neighbor] = true
+                dist := CosineSimilarity(query, neighbor.Vector)
+                if dist > W.Furthest().dist || W.Len() < ef {
+                    C.Push(neighbor, dist)
+                    W.Push(neighbor, dist)
+                    if W.Len() > ef {
+                        W.PopFurthest()
+                    }
+                }
+            }
+        }
+    }
+    return W.Items()
+}`
+  },
+  {
+    path: "internal/queue/worker.go",
+    name: "worker.go",
+    category: "Go · Concurrency & Redis",
+    icon: "⚙",
+    language: "go",
+    content: `package queue
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "time"
+
+    "github.com/go-redis/redis/v8"
+)
+
+type Worker struct {
+    ID          string
+    Queue       string
+    RedisClient *redis.Client
+    Heartbeat   time.Duration
+}
+
+// Start begins processing tasks and sending periodic heartbeat leases
+func (w *Worker) Start(ctx context.Context) {
+    go w.heartbeatLoop(ctx)
+
+    for {
+        select {
+        case <-ctx.Done():
+            log.Printf("[WORKER %s] Shutting down cleanly\\n", w.ID)
+            return
+        default:
+            taskID, err := w.claimNextTask(ctx)
+            if err != nil {
+                time.Sleep(500 * time.Millisecond)
+                continue
+            }
+            w.executeTask(ctx, taskID)
+        }
+    }
+}
+
+// Atomic CAS claim task using Redis Lua script
+func (w *Worker) claimNextTask(ctx context.Context) (string, error) {
+    script := redis.NewScript(\`
+        local task = redis.call('RPOPLPUSH', KEYS[1], KEYS[2])
+        if task then
+            redis.call('HSET', KEYS[3], task, ARGV[1])
+            redis.call('EXPIRE', KEYS[3], 30)
+            return task
+        end
+        return nil
+    \`)
+    res, err := script.Run(ctx, w.RedisClient, []string{w.Queue + ":pending", w.Queue + ":active", "task:owner"}, w.ID).Result()
+    if err != nil || res == nil {
+        return "", fmt.Errorf("no task available")
+    }
+    return res.(string), nil
+}`
+  },
+  {
+    path: "pkg/sync/room.ts",
+    name: "room.ts",
+    category: "TypeScript · WebRTC / Sync",
+    icon: "📡",
+    language: "typescript",
+    content: `export interface SyncClient {
+  id: string;
+  room: string;
+  playbackTime: number;
+  lastHeartbeat: number;
+  rtt: number; // round-trip ping time
+}
+
+export class VideoSyncRoom {
+  private clients: Map<string, SyncClient> = new Map();
+  private hostId: string | null = null;
+  private currentVideoPosition: number = 0;
+  private isPlaying: boolean = false;
+  private driftThresholdMs: number = 25;
+
+  public handleClientTimestamp(clientId: string, clientTime: number, sendTs: number): void {
+    const now = Date.now();
+    const rtt = now - sendTs;
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    client.playbackTime = clientTime;
+    client.lastHeartbeat = now;
+    client.rtt = rtt;
+
+    // Clock drift compensation relative to room playback master
+    const expectedTime = this.currentVideoPosition + (this.isPlaying ? (now - this.lastTick) / 1000 : 0);
+    const driftMs = Math.abs(clientTime - expectedTime) * 1000;
+
+    if (driftMs > this.driftThresholdMs) {
+      this.sendHardSyncCommand(clientId, expectedTime);
+    }
+  }
+
+  private sendHardSyncCommand(clientId: string, targetTime: number): void {
+    console.log(\`[ROOM] Correcting drift for \${clientId}: target=\${targetTime.toFixed(3)}s\`);
+  }
+}`
+  },
+  {
+    path: "blogs/postgres_cdc_cache.md",
+    name: "postgres_cdc_cache.md",
+    category: "Markdown · Architecture",
+    icon: "📝",
+    language: "markdown",
+    content: `# PostgreSQL CDC to Redis: Zero-Cache-Stampede Architecture
+
+In read-heavy distributed architectures, keeping cache consistent with the database without incurring cache stampedes or stale reads is one of the classic hard problems.
+
+## 1. Dual-Write Anti-Pattern
+Most systems start with application-level dual writing:
+\`\`\`go
+func UpdateUser(u User) {
+    db.Save(&u)
+    redis.Set("user:" + u.ID, u)
+}
+\`\`\`
+This fails under concurrent updates or network partitions between DB commit and Redis write.
+
+## 2. WAL-Based Change Data Capture
+By streaming the PostgreSQL Write-Ahead Log (WAL) directly via logical decoding (pgoutput) to a Go consumer daemon:
+1. Every committed transaction generates ordered row-level change events.
+2. Redis cache invalidations occur strictly post-commit.
+3. Cache invalidation publishes to Redis Pub/Sub channels to broadcast invalidations to local LRU caches.`
+  },
+  {
+    path: "blogs/hnsw_vector_go.md",
+    name: "hnsw_vector_go.md",
+    category: "Markdown · Deep-Dive",
+    icon: "📝",
+    language: "markdown",
+    content: `# Implementing HNSW Vector Search from Scratch in Go
+
+Hierarchical Navigable Small World (HNSW) graphs provide approximate nearest neighbor (ANN) search with logarithmic time complexity O(log N).
+
+## Key Implementation Mechanics:
+- **Multi-layer skip-list graph**: High layers have sparse connections for coarse navigation; base layer has dense clusters.
+- **Heuristic neighbor selection**: Prunes edges to avoid redundant paths while maintaining graph connectivity.
+- **Unrolled dot product**: Manual loop unrolling reduces bounds checking overhead.
+
+### Benchmark Results
+- 100,000 vectors (1536 dims)
+- Top-10 Recall@10: 98.4%
+- Query Latency P99: 0.72ms`
+  },
+  {
+    path: "blogs/raft_consensus_notes.md",
+    name: "raft_consensus_notes.md",
+    category: "Markdown · Notes",
+    icon: "📝",
+    language: "markdown",
+    content: `# Building a Distributed State Machine with Raft
+
+Consensus algorithms allow a collection of machines to work as a coherent group that can survive failures of some of its members.
+
+## Core Raft Roles:
+1. **Leader**: Handles all client requests, replicates log entries.
+2. **Follower**: Passive, responds to incoming RPCs from leaders and candidates.
+3. **Candidate**: Initiates election when heartbeat timer expires.
+
+## Safety Invariants:
+- Election Safety: at most one leader can be elected in a given term.
+- Leader Append-Only: a leader never overwrites or truncates its log.
+- Log Matching: if two logs contain an entry with same index and term, then logs are identical.`
+  },
+  {
+    path: "competitive_programming.cpp",
+    name: "competitive_programming.cpp",
+    category: "C++ · Codeforces 1584",
+    icon: "⚙",
+    language: "cpp",
+    content: `#include <bits/stdc++.h>
+using namespace std;
+
+// Divyanshu Yadav (Sh0ckwave) - Codeforces Specialist (Rating: 1584)
+// Fast I/O & Competitive Programming Template
+
+#define fast_io ios_base::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL)
+#define ll long long
+#define pb push_back
+#define all(v) (v).begin(), (v).end()
+
+// Disjoint Set Union (DSU) with Path Compression & Union by Rank
+struct DSU {
+    vector<int> parent, rank;
+    DSU(int n) {
+        parent.resize(n + 1);
+        iota(all(parent), 0);
+        rank.assign(n + 1, 0);
+    }
+    int find(int i) {
+        return (parent[i] == i) ? i : (parent[i] = find(parent[i]));
+    }
+    bool unite(int i, int j) {
+        int root_i = find(i);
+        int root_j = find(j);
+        if (root_i != root_j) {
+            if (rank[root_i] < rank[root_j]) swap(root_i, root_j);
+            parent[root_j] = root_i;
+            if (rank[root_i] == rank[root_j]) rank[root_i]++;
+            return true;
+        }
+        return false;
+    }
+};
+
+void solve() {
+    // 500+ problems solved across Codeforces, CSES, and AtCoder
+}
+
+int main() {
+    fast_io;
+    int t = 1;
+    while (t--) solve();
+    return 0;
+}`
+  },
+  {
+    path: "skills.json",
+    name: "skills.json",
+    category: "JSON · Skill Matrix",
+    icon: "{}",
+    language: "json",
+    content: `{
+  "engineer": "Divyanshu Yadav",
+  "specialization": "Backend & Distributed Systems",
+  "languages": {
+    "primary": "Go",
+    "systems": ["C", "C++"],
+    "web": ["TypeScript", "JavaScript", "SQL", "Bash"]
+  },
+  "concurrency_primitives": ["Goroutines", "Channels", "Mutexes", "Atomic CAS", "WaitGroups"],
+  "storage_and_cache": ["Redis (Lua)", "PostgreSQL", "MySQL", "MongoDB", "SQLite"],
+  "infrastructure": ["Docker", "Linux Syscalls", "Nginx", "FFmpeg", "Prometheus", "Grafana"]
+}`
+  },
+  {
+    path: "resume.txt",
+    name: "resume.txt",
+    category: "Text · ASCII Resume",
+    icon: "📄",
+    language: "text",
+    content: `================================================================================
+ DIVYANSHU YADAV
+ Backend & Systems Engineer | Go, Distributed Systems, Low-Level Concurrency
+================================================================================
+ Contact:  divyanshu13521984@gmail.com
+ Location: Bhubaneswar, India
+ GitHub:   https://github.com/Divyanshu-yadav-18
+ Handles:  Codeforces: Sh0ckwave (Specialist, Peak Rating: 1584, 500+ Solved)
+
+ [ EDUCATION ]
+ International Institute of Information Technology (IIIT), Bhubaneswar
+ B.Tech in Computer Science and Engineering (2023 - 2027)
+
+ [ CORE SYSTEMS ]
+ 1. LLM Relay - High-Performance AI Gateway & Semantic Vector Cache (Go, HNSW)
+ 2. Distributed Job Queue - Fault-Tolerant DAG Task Execution Engine (Go, Redis)
+ 3. StreamSync - Real-Time Multi-Bitrate Video Room & State Sync (TypeScript)
+================================================================================`
+  }
+];
+
+let telescopeSelectedIndex = 0;
+let filteredTelescopeFiles = [...TELESCOPE_FILES];
+
+function initTelescope() {
+  const modal = document.getElementById("telescope-modal");
+  const input = document.getElementById("telescope-input");
+  const triggerBtn = document.getElementById("open-telescope-btn");
+  const closeBtn = document.getElementById("telescope-close-btn");
+
+  if (triggerBtn) triggerBtn.addEventListener("click", openTelescope);
+  if (closeBtn) closeBtn.addEventListener("click", () => modal.classList.remove("open"));
+
+  if (input) {
+    input.addEventListener("input", (e) => {
+      renderTelescopeResults(e.target.value.trim());
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        modal.classList.remove("open");
+        updateNvimMode("NORMAL");
+      } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "j")) {
+        e.preventDefault();
+        if (filteredTelescopeFiles.length > 0) {
+          telescopeSelectedIndex = (telescopeSelectedIndex + 1) % filteredTelescopeFiles.length;
+          updateTelescopeSelection();
+        }
+      } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "k")) {
+        e.preventDefault();
+        if (filteredTelescopeFiles.length > 0) {
+          telescopeSelectedIndex = (telescopeSelectedIndex - 1 + filteredTelescopeFiles.length) % filteredTelescopeFiles.length;
+          updateTelescopeSelection();
+        }
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        confirmTelescopeSelection();
+      }
+    });
+  }
+}
+
+function openTelescope() {
+  const modal = document.getElementById("telescope-modal");
+  const input = document.getElementById("telescope-input");
+  if (!modal || !input) return;
+
+  modal.classList.add("open");
+  input.value = "";
+  input.focus();
+  telescopeSelectedIndex = 0;
+  renderTelescopeResults("");
+  updateNvimMode("COMMAND");
+}
+
+function renderTelescopeResults(query) {
+  const container = document.getElementById("telescope-results-list");
+  const countEl = document.getElementById("telescope-count");
+  if (!container) return;
+
+  const q = query.toLowerCase();
+  filteredTelescopeFiles = TELESCOPE_FILES.filter(f => 
+    f.path.toLowerCase().includes(q) || 
+    f.name.toLowerCase().includes(q) || 
+    f.category.toLowerCase().includes(q)
+  );
+
+  if (countEl) countEl.textContent = `${filteredTelescopeFiles.length} results`;
+
+  if (filteredTelescopeFiles.length === 0) {
+    container.innerHTML = `<div style="padding: 1.5rem; color: var(--fg-dim); text-align: center; font-family: var(--font-mono); font-size: 0.8rem;">No matching files. Try 'go', 'hnsw', 'redis', or 'md'</div>`;
+    renderTelescopePreview(null);
+    return;
+  }
+
+  if (telescopeSelectedIndex >= filteredTelescopeFiles.length) {
+    telescopeSelectedIndex = 0;
+  }
+
+  container.innerHTML = filteredTelescopeFiles.map((f, i) => `
+    <div class="telescope-item ${i === telescopeSelectedIndex ? 'selected' : ''}" data-index="${i}">
+      <span class="telescope-item-icon">${f.icon}</span>
+      <div class="telescope-item-info">
+        <span class="telescope-item-path">${f.path}</span>
+        <span class="telescope-item-cat">${f.category}</span>
+      </div>
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".telescope-item").forEach(item => {
+    item.addEventListener("click", () => {
+      telescopeSelectedIndex = parseInt(item.dataset.index, 10);
+      updateTelescopeSelection();
+      confirmTelescopeSelection();
+    });
+    item.addEventListener("mouseenter", () => {
+      telescopeSelectedIndex = parseInt(item.dataset.index, 10);
+      updateTelescopeSelection();
+    });
+  });
+
+  renderTelescopePreview(filteredTelescopeFiles[telescopeSelectedIndex]);
+}
+
+function updateTelescopeSelection() {
+  const container = document.getElementById("telescope-results-list");
+  if (!container) return;
+  const items = container.querySelectorAll(".telescope-item");
+  items.forEach((item, i) => {
+    if (i === telescopeSelectedIndex) {
+      item.classList.add("selected");
+      item.scrollIntoView({ block: "nearest" });
+    } else {
+      item.classList.remove("selected");
+    }
+  });
+
+  renderTelescopePreview(filteredTelescopeFiles[telescopeSelectedIndex]);
+}
+
+function renderTelescopePreview(file) {
+  const pathEl = document.getElementById("preview-file-path");
+  const badgeEl = document.getElementById("preview-file-badge");
+  const iconEl = document.getElementById("preview-file-icon");
+  const codeEl = document.getElementById("telescope-preview-code");
+
+  if (!file) {
+    if (pathEl) pathEl.textContent = "No file selected";
+    if (codeEl) codeEl.innerHTML = "";
+    return;
+  }
+
+  if (pathEl) pathEl.textContent = file.path;
+  if (badgeEl) badgeEl.textContent = file.language.toUpperCase();
+  if (iconEl) iconEl.textContent = file.icon;
+
+  if (codeEl) {
+    const lines = file.content.split("\\n");
+    codeEl.innerHTML = lines.map((line, idx) => `
+      <div class="code-preview-line">
+        <span class="code-line-num">${idx + 1}</span>
+        <span>${escapeHtml(line)}</span>
+      </div>
+    `).join("");
+  }
+}
+
+function confirmTelescopeSelection() {
+  const modal = document.getElementById("telescope-modal");
+  if (modal) modal.classList.remove("open");
+  updateNvimMode("NORMAL");
+
+  const file = filteredTelescopeFiles[telescopeSelectedIndex];
+  if (!file) return;
+
+  if (file.path.startsWith("blogs/")) {
+    if (file.path.includes("postgres")) openArticleModal("postgres-cache-miss-storm");
+    else if (file.path.includes("hnsw")) openArticleModal("hnsw-vector-index-go");
+    else if (file.path.includes("raft")) openArticleModal("dag-job-queue-heartbeat");
+    else activateBuffer("blogs");
+    showToastNotification(`[Telescope] Opened ${file.path}`);
+  } else if (file.path === "resume.txt") {
+    openResumeModal();
+    showToastNotification(`[Telescope] Opened terminal resume`);
+  } else if (file.path === "skills.json") {
+    activateBuffer("skills.json");
+    scrollToId("skills");
+    showToastNotification(`[Telescope] Switched to skills.json`);
+  } else if (file.path === "competitive_programming.cpp") {
+    activateBuffer("competitive_programming.cpp");
+    scrollToId("competitive");
+    showToastNotification(`[Telescope] Switched to competitive_programming.cpp`);
+  } else if (file.path.includes("llm-relay")) {
+    activateBuffer("projects.rs");
+    scrollToId("widget-llm-relay");
+    showToastNotification(`[Telescope] Opened LLM Relay source`);
+  } else if (file.path.includes("queue")) {
+    activateBuffer("projects.rs");
+    scrollToId("widget-distributed-job-queue");
+    showToastNotification(`[Telescope] Opened Distributed Job Queue source`);
+  } else if (file.path.includes("sync")) {
+    activateBuffer("projects.rs");
+    scrollToId("widget-stream-sync");
+    showToastNotification(`[Telescope] Opened StreamSync source`);
+  } else {
+    showToastNotification(`[Telescope] Selected ${file.path}`);
+  }
+}
+
+/* ==========================================================================
+   HARPOON QUICK-MENU (<leader>h / :harpoon)
+   ========================================================================== */
+const HARPOON_MARKS = [
+  { num: 1, name: "divyanshu.go", desc: "Overview & Systems Engineering Hero", buffer: "overview" },
+  { num: 2, name: "projects.rs", desc: "LLM Relay, Job Queue, StreamSync", buffer: "projects" },
+  { num: 3, name: "architecture_blogs.md", desc: "Technical Articles & Deep-Dives", buffer: "blogs" },
+  { num: 4, name: "skills.json", desc: "Go, Concurrency, Linux & Datastores", buffer: "skills" },
+  { num: 5, name: "competitive_programming.cpp", desc: "Codeforces Specialist 1584", buffer: "competitive_programming.cpp" },
+  { num: 6, name: "resume.txt", desc: "ASCII Plain-Text Terminal Resume", isResume: true },
+];
+
+function initHarpoon() {
+  const closeBtn = document.getElementById("harpoon-close-btn");
+  const modal = document.getElementById("harpoon-modal");
+
+  if (closeBtn) closeBtn.addEventListener("click", () => modal.classList.remove("open"));
+
+  const listEl = document.getElementById("harpoon-list");
+  if (listEl) {
+    listEl.innerHTML = HARPOON_MARKS.map(m => `
+      <div class="harpoon-item" data-num="${m.num}">
+        <span class="harpoon-key">[${m.num}]</span>
+        <span style="font-weight: 600; color: var(--fg-bright);">${m.name}</span>
+        <span style="color: var(--fg-dim); font-size: 0.72rem; margin-left: auto;">${m.desc}</span>
+      </div>
+    `).join("");
+
+    listEl.querySelectorAll(".harpoon-item").forEach(item => {
+      item.addEventListener("click", () => {
+        jumpHarpoon(parseInt(item.dataset.num, 10));
+      });
+    });
+  }
+}
+
+function openHarpoon() {
+  const modal = document.getElementById("harpoon-modal");
+  if (modal) {
+    modal.classList.add("open");
+    updateNvimMode("COMMAND");
+  }
+}
+
+function jumpHarpoon(num) {
+  const modal = document.getElementById("harpoon-modal");
+  if (modal) modal.classList.remove("open");
+  updateNvimMode("NORMAL");
+
+  const mark = HARPOON_MARKS.find(m => m.num === num);
+  if (!mark) return;
+
+  if (mark.isResume) {
+    openResumeModal();
+  } else {
+    activateBuffer(mark.buffer);
+    if (mark.buffer === "skills") scrollToId("skills");
+    else if (mark.buffer === "projects") scrollToId("projects");
+    else if (mark.buffer === "competitive_programming.cpp") scrollToId("competitive");
+  }
+  showToastNotification(`[Harpoon] Jumped to mark [${num}] ${mark.name}`);
+}
+
+/* ==========================================================================
+   OIL.NVIM FILE MANAGER (:oil / :ex / <leader>e)
+   ========================================================================== */
+function openOilModal() {
+  const fileRows = [
+    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "cmd/llm-relay/", action: () => { closeAllModals(); openTelescope(); } },
+    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "internal/cache/", action: () => { closeAllModals(); openTelescope(); } },
+    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "internal/queue/", action: () => { closeAllModals(); openTelescope(); } },
+    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "pkg/sync/", action: () => { closeAllModals(); openTelescope(); } },
+    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "blogs/", action: () => { closeAllModals(); activateBuffer("blogs"); } },
+    { type: "-", perms: "-rw-r--r--", size: "1.4K", name: "divyanshu.go", action: () => { closeAllModals(); activateBuffer("overview"); } },
+    { type: "-", perms: "-rw-r--r--", size: "2.8K", name: "projects.rs", action: () => { closeAllModals(); activateBuffer("projects"); } },
+    { type: "-", perms: "-rw-r--r--", size: "3.1K", name: "skills.json", action: () => { closeAllModals(); activateBuffer("skills"); } },
+    { type: "-", perms: "-rw-r--r--", size: "1.2K", name: "competitive_programming.cpp", action: () => { closeAllModals(); activateBuffer("competitive_programming.cpp"); } },
+    { type: "-", perms: "-rw-r--r--", size: "2.1K", name: "resume.txt", action: () => { closeAllModals(); openResumeModal(); } },
+    { type: "-", perms: "-rw-r--r--", size: "842B", name: "init.lua", action: () => { closeAllModals(); showToastNotification("[Oil] init.lua: Neovim runtime loaded"); } },
+  ];
+
+  const html = `
+<div style="font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6;">
+  <div style="color: var(--yellow); font-weight: 700; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem; display: flex; justify-content: space-between;">
+    <span>oil:///home/divyanshu/portfolio/</span>
+    <span style="color: var(--fg-dim); font-size: 0.72rem;">[Click row to open]</span>
+  </div>
+  <table style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr style="color: var(--fg-dim); font-size: 0.7rem; border-bottom: 1px solid var(--border); text-align: left;">
+        <th style="padding: 0.3rem 0.5rem;">PERMS</th>
+        <th style="padding: 0.3rem 0.5rem; text-align: right;">SIZE</th>
+        <th style="padding: 0.3rem 0.75rem;">NAME</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${fileRows.map(r => `
+        <tr class="oil-row" style="cursor: pointer; transition: background 0.15s ease;" onmouseover="this.style.background='var(--bg-surface)'" onmouseout="this.style.background='transparent'">
+          <td style="padding: 0.35rem 0.5rem; color: var(--fg-dim); font-size: 0.74rem;">${r.perms}</td>
+          <td style="padding: 0.35rem 0.5rem; text-align: right; color: var(--fg-muted); font-size: 0.74rem;">${r.size}</td>
+          <td style="padding: 0.35rem 0.75rem; font-weight: 600; color: ${r.type === 'd' ? 'var(--blue)' : 'var(--fg-bright)'};">
+            ${r.type === 'd' ? '📁 ' : '📄 '}${r.name}
+          </td>
+        </tr>
+      `).join("")}
+    </tbody>
+  </table>
+  <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); color: var(--fg-dim); font-size: 0.72rem; text-align: center;">
+    Press [Esc] to exit Oil file manager · Type <strong>:Telescope</strong> for fuzzy search
+  </div>
+</div>
+  `;
+
+  openNvimFloat("nvim://oil:///home/divyanshu/portfolio/", "oil.nvim [DIR]", html);
+
+  const rows = document.querySelectorAll(".oil-row");
+  rows.forEach((row, i) => {
+    row.addEventListener("click", fileRows[i].action);
+  });
+}
+
+/* ==========================================================================
+   GIT BLAME & GITSIGNS (:blame / :gitsigns)
+   ========================================================================== */
+let gitBlameActive = false;
+
+function toggleGitBlame() {
+  gitBlameActive = !gitBlameActive;
+
+  const existingBlames = document.querySelectorAll(".git-blame-virtual");
+  existingBlames.forEach(el => el.remove());
+
+  if (gitBlameActive) {
+    // Add virtual blame text to section headings
+    const headings = [
+      { id: "projects", text: "Divyanshu Yadav · 3 days ago · feat: HNSW vector semantic cache" },
+      { id: "blogs", text: "Divyanshu Yadav · 5 days ago · feat: PostgreSQL CDC WAL streaming notes" },
+      { id: "skills", text: "Divyanshu Yadav · 1 week ago · feat: systems concurrency stack" },
+    ];
+
+    headings.forEach(h => {
+      const section = document.getElementById(h.id);
+      if (section) {
+        const titleEl = section.querySelector(".section-heading");
+        if (titleEl) {
+          const blameSpan = document.createElement("span");
+          blameSpan.className = "git-blame-virtual";
+          blameSpan.textContent = h.text;
+          titleEl.appendChild(blameSpan);
+        }
+      }
+    });
+
+    showToastNotification("[gitsigns] Blame virtual text ON (commit 87ff4d1)");
+  } else {
+    showToastNotification("[gitsigns] Blame virtual text OFF");
+  }
+}
+
+/* ==========================================================================
+   KISUKE URAHARA SHŌTEN INVENTORY MODAL (:shop)
+   ========================================================================== */
+function showShopModal() {
+  const html = `
+<div style="font-family: var(--font-mono); line-height: 1.6;">
+  <div style="color: var(--green); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
+    ==============================================================================
+    <span style="color: var(--fg-bright);">浦原商店 // KISUKE URAHARA INVENTIONS & LABS</span>
+  </div>
+  <p style="color: var(--fg-muted); font-size: 0.8rem; margin-bottom: 1rem;">
+    <em>"There is nothing in this world that is truly 'perfect'. That's why we create."</em> — Kisuke Urahara
+    <br>
+    Welcome to Urahara Shōten. Here are our cutting-edge systems and spirit artifacts:
+  </p>
+  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
+        <span>1. 転神体 (Tenshintai)</span>
+        <span style="color: var(--aqua); font-size: 0.72rem;">Stress Test Harness</span>
+      </div>
+      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
+        Force-materializes distributed system state into an accelerated 3-day chaos engineering sandbox. Warning: High CPU load.
+      </p>
+    </div>
+
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
+        <span>2. 崩玉 (Hōgyoku) Prototype</span>
+        <span style="color: var(--purple); font-size: 0.72rem;">Self-Healing Cache</span>
+      </div>
+      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
+        Non-deterministic autonomous runtime memory optimizer. Dissolves the barrier between hardware constraints and software desires.
+      </p>
+    </div>
+
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
+        <span>3. 義骸 (Gigai)</span>
+        <span style="color: var(--green); font-size: 0.72rem;">Lightweight Container Isolation</span>
+      </div>
+      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
+        Zero-overhead Linux namespace container for spirit-thread processes, avoiding host kernel detection.
+      </p>
+    </div>
+
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
+        <span>4. 帰換針 (Kikanshinki)</span>
+        <span style="color: var(--orange); font-size: 0.72rem;">Atomic Memory Rollback</span>
+      </div>
+      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
+        Distributed two-phase transaction coordinator capable of rolling back human memory to an uncorrupted snapshot.
+      </p>
+    </div>
+
+    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
+      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
+        <span>5. 義魂丸 (Soul-Candy / Gikongan)</span>
+        <span style="color: var(--blue); font-size: 0.72rem;">Mock Background Daemon</span>
+      </div>
+      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
+        Drop-in green thread worker to handle routine background tasks and mock client responses while main thread battles bugs.
+      </p>
+    </div>
+  </div>
+
+  <div style="margin-top: 1.25rem; text-align: center; display: flex; gap: 0.75rem; justify-content: center;">
+    <button class="btn-primary" onclick="closeAllModals(); activateBankai();" style="background: #dc143c; border-color: #dc143c; color: #fff;">
+      ⚔ Release Bankai (Benihime)
+    </button>
+  </div>
+</div>
+  `;
+
+  openNvimFloat("nvim://shop/urahara", "urahara_shoten.nfo", html);
 }
