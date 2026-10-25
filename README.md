@@ -20,6 +20,7 @@ A retro, high-performance developer portfolio and technical blog inspired by **G
     - `:skills` — View categorized technology stack matrix (`skills.json`).
     - `:cp` — View Codeforces rating & algorithms info (`competitive_programming.cpp`).
     - `:resume` — Open interactive printable resume viewer (`resume.pdf`).
+    - `:harpoon` — ThePrimeagen Harpoon buffer quick-jump menu (`<leader>h`).
     - `:checkhealth` — Real Neovim diagnostic report for Go runtime, databases, cache, and editor health.
     - `:lazy` — Plugin manager buffer displaying loaded plugins and startup latency.
     - `:smile` / `:fortune` — Kisuke Urahara ASCII art and witty tactical wisdom.

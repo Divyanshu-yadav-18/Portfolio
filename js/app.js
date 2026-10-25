@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initNvimFloatingWindow();
   initMatrixEffect();
   initStatuslineModeToggle();
-  initTelescope();
   initHarpoon();
   initAvatarEasterEgg();
 });
@@ -610,12 +609,7 @@ const VIM_COMMANDS = [
   { cmd: ":bn", desc: "Switch to next buffer tab [gt]", action: () => switchBufferNext() },
   { cmd: ":bp", desc: "Switch to previous buffer tab [gT]", action: () => switchBufferPrev() },
   { cmd: ":email", desc: "Copy Divyanshu's contact email to clipboard", action: () => copyEmailToClipboard() },
-  { cmd: ":telescope", desc: "🔭 Open Telescope fuzzy file finder (Ctrl+P / <leader>ff)", action: () => openTelescope() },
-  { cmd: ":find", desc: "🔭 Fuzzy find and live preview repository source code", action: () => openTelescope() },
-  { cmd: ":files", desc: "🔭 Browse all repository files in Telescope", action: () => openTelescope() },
-  { cmd: ":harpoon", desc: "󰛢 ThePrimeagen Harpoon buffer quick-jump (<leader>h)", action: () => openHarpoon() },
-  { cmd: ":oil", desc: "📁 Oil.nvim directory tree & buffer explorer (<leader>e)", action: () => openOilModal() },
-  { cmd: ":ex", desc: "📁 Explore repository project hierarchy", action: () => openOilModal() },
+  { cmd: ":harpoon", desc: "📌 Harpoon buffer quick-jump (<leader>h)", action: () => openHarpoon() },
   { cmd: ":blame", desc: "⌥ Toggle Git blame virtual text annotations", action: () => toggleGitBlame() },
   { cmd: ":gitsigns", desc: "⌥ Toggle Git blame virtual text and diff signs", action: () => toggleGitBlame() },
   { cmd: ":shop", desc: "🏪 Kisuke Urahara Shōten inventory & inventions", action: () => showShopModal() },
@@ -751,18 +745,8 @@ function initCommandPalette() {
       return;
     }
 
-    if (lower === ":t" || lower === ":telescope" || lower === ":find" || lower === ":files") {
-      openTelescope();
-      return;
-    }
-
     if (lower === ":harpoon") {
       openHarpoon();
-      return;
-    }
-
-    if (lower === ":oil" || lower === ":ex" || lower === ":explore") {
-      openOilModal();
       return;
     }
 
@@ -866,13 +850,6 @@ function initKeyboardNav() {
     const now = Date.now();
     const isRapid = (now - lastKeyTime) < 500;
 
-    // Ctrl+P / Cmd+P Telescope Finder
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
-      e.preventDefault();
-      openTelescope();
-      return;
-    }
-
     // Harpoon numeric jump when Harpoon modal is open
     const harpoonModal = document.getElementById("harpoon-modal");
     if (harpoonModal && harpoonModal.classList.contains("open")) {
@@ -888,26 +865,14 @@ function initKeyboardNav() {
       e.preventDefault();
       lastKey = "leader";
       lastKeyTime = now;
-      showToastNotification("[<leader>] (f: Telescope · h: Harpoon · e: Oil · b: Blame)");
+      showToastNotification("[<leader>] (h: Harpoon · b: Blame)");
       return;
     }
 
     if (lastKey === "leader" && isRapid) {
-      if (e.key === "f") {
-        e.preventDefault();
-        openTelescope();
-        lastKey = "";
-        return;
-      }
       if (e.key === "h" || e.key === "a") {
         e.preventDefault();
         openHarpoon();
-        lastKey = "";
-        return;
-      }
-      if (e.key === "e") {
-        e.preventDefault();
-        openOilModal();
         lastKey = "";
         return;
       }
@@ -1268,17 +1233,9 @@ function showLazyModal() {
 <div style="font-family: var(--font-mono); line-height: 1.6;">
   <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
     <span style="font-weight: 700; color: var(--yellow);">💤 lazy.nvim</span>
-    <span style="color: var(--green); font-size: 0.78rem;">● 8 loaded / 0 failed [12.4ms startup]</span>
+    <span style="color: var(--green); font-size: 0.78rem;">● 6 loaded / 0 failed [8.4ms startup]</span>
   </div>
   <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
-      <span style="color: var(--blue); font-weight: 600;">● telescope.nvim</span>
-      <span style="color: var(--fg-muted); font-size: 0.78rem;">Fuzzy search across projects &amp; architecture blogs</span>
-    </div>
-    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
-      <span style="color: var(--green); font-weight: 600;">● nvim-treesitter</span>
-      <span style="color: var(--fg-muted); font-size: 0.78rem;">AST parsing for Go, Rust, C++, Lua, Markdown</span>
-    </div>
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
       <span style="color: var(--orange); font-weight: 600;">● harpoon</span>
       <span style="color: var(--fg-muted); font-size: 0.78rem;">Lightning buffer navigation &amp; quick marks</span>
@@ -1326,6 +1283,7 @@ function showHelpModal() {
 :skills           Inspect categorized tech stack (skills.json)
 :cp               View competitive programming rating &amp; CS fundamentals
 :resume           Open interactive printable resume viewer (resume.pdf)
+:harpoon          ThePrimeagen Harpoon buffer quick-jump (&lt;leader&gt;h)
 :bd, :bdelete     Unload blog buffer and return to main overview
 :bn, :bnext       Switch to next buffer tab [gt]
 :bp, :bprev       Switch to previous buffer tab [gT]
@@ -1867,598 +1825,6 @@ function initAvatarEasterEgg() {
   }
 }
 
-/* ==========================================================================
-   TELESCOPE FUZZY FILE FINDER (Ctrl+p / :Telescope)
-   ========================================================================== */
-const TELESCOPE_FILES = [
-  {
-    path: "cmd/llm-relay/main.go",
-    name: "main.go",
-    category: "Go · Gateway Entrypoint",
-    icon: "🐹",
-    language: "go",
-    content: `package main
-
-import (
-    "context"
-    "log"
-    "net/http"
-    "os"
-    "time"
-
-    "github.com/go-chi/chi/v5"
-    "github.com/go-chi/chi/v5/middleware"
-    "github.com/Divyanshu-yadav-18/llm_relay/internal/cache"
-    "github.com/Divyanshu-yadav-18/llm_relay/internal/limiter"
-    "github.com/Divyanshu-yadav-18/llm_relay/internal/relay"
-)
-
-func main() {
-    log.Println("[INFO] Booting LLM Relay Gateway v1.4.0...")
-
-    // 1. Initialize Custom HNSW Vector Semantic Cache (dim: 1536)
-    hnswCache := cache.NewHNSWCache(1536, 16, 200, 0.92)
-    log.Printf("[INFO] HNSW Vector Index ready (threshold=%.2f)\\n", 0.92)
-
-    // 2. Setup Redis Token Bucket Rate Limiter
-    redisLimiter := limiter.NewRedisTokenBucket("redis:6379", 120, time.Minute)
-
-    // 3. Register Multi-Provider Relay Handlers (OpenAI, Anthropic, Gemini)
-    router := chi.NewRouter()
-    router.Use(middleware.RequestID)
-    router.Use(middleware.RealIP)
-    router.Use(middleware.Logger)
-    router.Use(middleware.Recoverer)
-
-    router.Post("/v1/chat/completions", relay.HandleChatCompletion(hnswCache, redisLimiter))
-    router.Get("/metrics", relay.MetricsHandler())
-
-    srv := &http.Server{
-        Addr:         ":8080",
-        Handler:      router,
-        ReadTimeout:  10 * time.Second,
-        WriteTimeout: 60 * time.Second,
-    }
-
-    log.Println("[INFO] LLM Relay listening on :8080")
-    if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-        log.Fatalf("[FATAL] Listen failed: %v", err)
-    }
-}`
-  },
-  {
-    path: "internal/cache/hnsw.go",
-    name: "hnsw.go",
-    category: "Go · Vector Algorithm",
-    icon: "⚡",
-    language: "go",
-    content: `package cache
-
-import (
-    "math"
-    "sync"
-)
-
-// HNSWGraph implements Hierarchical Navigable Small World vector search
-type HNSWGraph struct {
-    dim        int
-    m          int     // max edges per node
-    efSearch   int     // search exploration factor
-    threshold  float32 // cosine similarity match threshold
-    entryPoint *Node
-    layers     []*Layer
-    mu         sync.RWMutex
-}
-
-type Node struct {
-    ID     string
-    Vector []float32
-    Data   []byte
-    Edges  map[int][]*Node // layer -> neighbor nodes
-}
-
-// CosineSimilarity with loop unrolling for zero-allocation dot products
-func CosineSimilarity(a, b []float32) float32 {
-    var dot, normA, normB float32
-    n := len(a)
-    for i := 0; i < n; i += 4 {
-        dot   += a[i]*b[i]     + a[i+1]*b[i+1] + a[i+2]*b[i+2] + a[i+3]*b[i+3]
-        normA += a[i]*a[i]     + a[i+1]*a[i+1] + a[i+2]*a[i+2] + a[i+3]*a[i+3]
-        normB += b[i]*b[i]     + b[i+1]*b[i+1] + b[i+2]*b[i+2] + b[i+3]*b[i+3]
-    }
-    return dot / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
-}
-
-// SearchLayer traverses proximity layers to find top-K nearest vectors
-func (g *HNSWGraph) SearchLayer(query []float32, ep *Node, ef int, lc int) []*Node {
-    v := make(map[*Node]bool)
-    C := NewCandidateQueue()
-    W := NewNearestQueue(ef)
-
-    v[ep] = true
-    C.Push(ep, CosineSimilarity(query, ep.Vector))
-    W.Push(ep, CosineSimilarity(query, ep.Vector))
-
-    for C.Len() > 0 {
-        curr := C.Pop()
-        if curr.dist < W.Furthest().dist {
-            break
-        }
-        for _, neighbor := range curr.node.Edges[lc] {
-            if !v[neighbor] {
-                v[neighbor] = true
-                dist := CosineSimilarity(query, neighbor.Vector)
-                if dist > W.Furthest().dist || W.Len() < ef {
-                    C.Push(neighbor, dist)
-                    W.Push(neighbor, dist)
-                    if W.Len() > ef {
-                        W.PopFurthest()
-                    }
-                }
-            }
-        }
-    }
-    return W.Items()
-}`
-  },
-  {
-    path: "internal/queue/worker.go",
-    name: "worker.go",
-    category: "Go · Concurrency & Redis",
-    icon: "⚙",
-    language: "go",
-    content: `package queue
-
-import (
-    "context"
-    "fmt"
-    "log"
-    "time"
-
-    "github.com/go-redis/redis/v8"
-)
-
-type Worker struct {
-    ID          string
-    Queue       string
-    RedisClient *redis.Client
-    Heartbeat   time.Duration
-}
-
-// Start begins processing tasks and sending periodic heartbeat leases
-func (w *Worker) Start(ctx context.Context) {
-    go w.heartbeatLoop(ctx)
-
-    for {
-        select {
-        case <-ctx.Done():
-            log.Printf("[WORKER %s] Shutting down cleanly\\n", w.ID)
-            return
-        default:
-            taskID, err := w.claimNextTask(ctx)
-            if err != nil {
-                time.Sleep(500 * time.Millisecond)
-                continue
-            }
-            w.executeTask(ctx, taskID)
-        }
-    }
-}
-
-// Atomic CAS claim task using Redis Lua script
-func (w *Worker) claimNextTask(ctx context.Context) (string, error) {
-    script := redis.NewScript(\`
-        local task = redis.call('RPOPLPUSH', KEYS[1], KEYS[2])
-        if task then
-            redis.call('HSET', KEYS[3], task, ARGV[1])
-            redis.call('EXPIRE', KEYS[3], 30)
-            return task
-        end
-        return nil
-    \`)
-    res, err := script.Run(ctx, w.RedisClient, []string{w.Queue + ":pending", w.Queue + ":active", "task:owner"}, w.ID).Result()
-    if err != nil || res == nil {
-        return "", fmt.Errorf("no task available")
-    }
-    return res.(string), nil
-}`
-  },
-  {
-    path: "pkg/sync/room.ts",
-    name: "room.ts",
-    category: "TypeScript · WebRTC / Sync",
-    icon: "📡",
-    language: "typescript",
-    content: `export interface SyncClient {
-  id: string;
-  room: string;
-  playbackTime: number;
-  lastHeartbeat: number;
-  rtt: number; // round-trip ping time
-}
-
-export class VideoSyncRoom {
-  private clients: Map<string, SyncClient> = new Map();
-  private hostId: string | null = null;
-  private currentVideoPosition: number = 0;
-  private isPlaying: boolean = false;
-  private driftThresholdMs: number = 25;
-
-  public handleClientTimestamp(clientId: string, clientTime: number, sendTs: number): void {
-    const now = Date.now();
-    const rtt = now - sendTs;
-    const client = this.clients.get(clientId);
-    if (!client) return;
-
-    client.playbackTime = clientTime;
-    client.lastHeartbeat = now;
-    client.rtt = rtt;
-
-    // Clock drift compensation relative to room playback master
-    const expectedTime = this.currentVideoPosition + (this.isPlaying ? (now - this.lastTick) / 1000 : 0);
-    const driftMs = Math.abs(clientTime - expectedTime) * 1000;
-
-    if (driftMs > this.driftThresholdMs) {
-      this.sendHardSyncCommand(clientId, expectedTime);
-    }
-  }
-
-  private sendHardSyncCommand(clientId: string, targetTime: number): void {
-    console.log(\`[ROOM] Correcting drift for \${clientId}: target=\${targetTime.toFixed(3)}s\`);
-  }
-}`
-  },
-  {
-    path: "blogs/postgres_cdc_cache.md",
-    name: "postgres_cdc_cache.md",
-    category: "Markdown · Architecture",
-    icon: "📝",
-    language: "markdown",
-    content: `# PostgreSQL CDC to Redis: Zero-Cache-Stampede Architecture
-
-In read-heavy distributed architectures, keeping cache consistent with the database without incurring cache stampedes or stale reads is one of the classic hard problems.
-
-## 1. Dual-Write Anti-Pattern
-Most systems start with application-level dual writing:
-\`\`\`go
-func UpdateUser(u User) {
-    db.Save(&u)
-    redis.Set("user:" + u.ID, u)
-}
-\`\`\`
-This fails under concurrent updates or network partitions between DB commit and Redis write.
-
-## 2. WAL-Based Change Data Capture
-By streaming the PostgreSQL Write-Ahead Log (WAL) directly via logical decoding (pgoutput) to a Go consumer daemon:
-1. Every committed transaction generates ordered row-level change events.
-2. Redis cache invalidations occur strictly post-commit.
-3. Cache invalidation publishes to Redis Pub/Sub channels to broadcast invalidations to local LRU caches.`
-  },
-  {
-    path: "blogs/hnsw_vector_go.md",
-    name: "hnsw_vector_go.md",
-    category: "Markdown · Deep-Dive",
-    icon: "📝",
-    language: "markdown",
-    content: `# Implementing HNSW Vector Search from Scratch in Go
-
-Hierarchical Navigable Small World (HNSW) graphs provide approximate nearest neighbor (ANN) search with logarithmic time complexity O(log N).
-
-## Key Implementation Mechanics:
-- **Multi-layer skip-list graph**: High layers have sparse connections for coarse navigation; base layer has dense clusters.
-- **Heuristic neighbor selection**: Prunes edges to avoid redundant paths while maintaining graph connectivity.
-- **Unrolled dot product**: Manual loop unrolling reduces bounds checking overhead.
-
-### Benchmark Results
-- 100,000 vectors (1536 dims)
-- Top-10 Recall@10: 98.4%
-- Query Latency P99: 0.72ms`
-  },
-  {
-    path: "blogs/raft_consensus_notes.md",
-    name: "raft_consensus_notes.md",
-    category: "Markdown · Notes",
-    icon: "📝",
-    language: "markdown",
-    content: `# Building a Distributed State Machine with Raft
-
-Consensus algorithms allow a collection of machines to work as a coherent group that can survive failures of some of its members.
-
-## Core Raft Roles:
-1. **Leader**: Handles all client requests, replicates log entries.
-2. **Follower**: Passive, responds to incoming RPCs from leaders and candidates.
-3. **Candidate**: Initiates election when heartbeat timer expires.
-
-## Safety Invariants:
-- Election Safety: at most one leader can be elected in a given term.
-- Leader Append-Only: a leader never overwrites or truncates its log.
-- Log Matching: if two logs contain an entry with same index and term, then logs are identical.`
-  },
-  {
-    path: "competitive_programming.cpp",
-    name: "competitive_programming.cpp",
-    category: "C++ · Codeforces 1584",
-    icon: "⚙",
-    language: "cpp",
-    content: `#include <bits/stdc++.h>
-using namespace std;
-
-// Divyanshu Yadav (Sh0ckwave) - Codeforces Specialist (Rating: 1584)
-// Fast I/O & Competitive Programming Template
-
-#define fast_io ios_base::sync_with_stdio(false); cin.tie(NULL); cout.tie(NULL)
-#define ll long long
-#define pb push_back
-#define all(v) (v).begin(), (v).end()
-
-// Disjoint Set Union (DSU) with Path Compression & Union by Rank
-struct DSU {
-    vector<int> parent, rank;
-    DSU(int n) {
-        parent.resize(n + 1);
-        iota(all(parent), 0);
-        rank.assign(n + 1, 0);
-    }
-    int find(int i) {
-        return (parent[i] == i) ? i : (parent[i] = find(parent[i]));
-    }
-    bool unite(int i, int j) {
-        int root_i = find(i);
-        int root_j = find(j);
-        if (root_i != root_j) {
-            if (rank[root_i] < rank[root_j]) swap(root_i, root_j);
-            parent[root_j] = root_i;
-            if (rank[root_i] == rank[root_j]) rank[root_i]++;
-            return true;
-        }
-        return false;
-    }
-};
-
-void solve() {
-    // 500+ problems solved across Codeforces, CSES, and AtCoder
-}
-
-int main() {
-    fast_io;
-    int t = 1;
-    while (t--) solve();
-    return 0;
-}`
-  },
-  {
-    path: "skills.json",
-    name: "skills.json",
-    category: "JSON · Skill Matrix",
-    icon: "{}",
-    language: "json",
-    content: `{
-  "engineer": "Divyanshu Yadav",
-  "specialization": "Backend & Distributed Systems",
-  "languages": {
-    "primary": "Go",
-    "systems": ["C", "C++"],
-    "web": ["TypeScript", "JavaScript", "SQL", "Bash"]
-  },
-  "concurrency_primitives": ["Goroutines", "Channels", "Mutexes", "Atomic CAS", "WaitGroups"],
-  "storage_and_cache": ["Redis (Lua)", "PostgreSQL", "MySQL", "MongoDB", "SQLite"],
-  "infrastructure": ["Docker", "Linux Syscalls", "Nginx", "FFmpeg", "Prometheus", "Grafana"]
-}`
-  },
-  {
-    path: "resume.txt",
-    name: "resume.txt",
-    category: "Text · ASCII Resume",
-    icon: "📄",
-    language: "text",
-    content: `================================================================================
- DIVYANSHU YADAV
- Backend & Systems Engineer | Go, Distributed Systems, Low-Level Concurrency
-================================================================================
- Contact:  divyanshu13521984@gmail.com
- Location: Bhubaneswar, India
- GitHub:   https://github.com/Divyanshu-yadav-18
- Handles:  Codeforces: Sh0ckwave (Specialist, Peak Rating: 1584, 500+ Solved)
-
- [ EDUCATION ]
- International Institute of Information Technology (IIIT), Bhubaneswar
- B.Tech in Computer Science and Engineering (2023 - 2027)
-
- [ CORE SYSTEMS ]
- 1. LLM Relay - High-Performance AI Gateway & Semantic Vector Cache (Go, HNSW)
- 2. Distributed Job Queue - Fault-Tolerant DAG Task Execution Engine (Go, Redis)
- 3. StreamSync - Real-Time Multi-Bitrate Video Room & State Sync (TypeScript)
-================================================================================`
-  }
-];
-
-let telescopeSelectedIndex = 0;
-let filteredTelescopeFiles = [...TELESCOPE_FILES];
-
-function initTelescope() {
-  const modal = document.getElementById("telescope-modal");
-  const input = document.getElementById("telescope-input");
-  const triggerBtn = document.getElementById("open-telescope-btn");
-  const closeBtn = document.getElementById("telescope-close-btn");
-
-  if (triggerBtn) triggerBtn.addEventListener("click", openTelescope);
-  if (closeBtn) closeBtn.addEventListener("click", () => modal.classList.remove("open"));
-
-  if (input) {
-    input.addEventListener("input", (e) => {
-      renderTelescopeResults(e.target.value.trim());
-    });
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        modal.classList.remove("open");
-        updateNvimMode("NORMAL");
-      } else if (e.key === "ArrowDown" || (e.ctrlKey && e.key === "j")) {
-        e.preventDefault();
-        if (filteredTelescopeFiles.length > 0) {
-          telescopeSelectedIndex = (telescopeSelectedIndex + 1) % filteredTelescopeFiles.length;
-          updateTelescopeSelection();
-        }
-      } else if (e.key === "ArrowUp" || (e.ctrlKey && e.key === "k")) {
-        e.preventDefault();
-        if (filteredTelescopeFiles.length > 0) {
-          telescopeSelectedIndex = (telescopeSelectedIndex - 1 + filteredTelescopeFiles.length) % filteredTelescopeFiles.length;
-          updateTelescopeSelection();
-        }
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        confirmTelescopeSelection();
-      }
-    });
-  }
-}
-
-function openTelescope() {
-  const modal = document.getElementById("telescope-modal");
-  const input = document.getElementById("telescope-input");
-  if (!modal || !input) return;
-
-  modal.classList.add("open");
-  input.value = "";
-  input.focus();
-  telescopeSelectedIndex = 0;
-  renderTelescopeResults("");
-  updateNvimMode("COMMAND");
-}
-
-function renderTelescopeResults(query) {
-  const container = document.getElementById("telescope-results-list");
-  const countEl = document.getElementById("telescope-count");
-  if (!container) return;
-
-  const q = query.toLowerCase();
-  filteredTelescopeFiles = TELESCOPE_FILES.filter(f => 
-    f.path.toLowerCase().includes(q) || 
-    f.name.toLowerCase().includes(q) || 
-    f.category.toLowerCase().includes(q)
-  );
-
-  if (countEl) countEl.textContent = `${filteredTelescopeFiles.length} results`;
-
-  if (filteredTelescopeFiles.length === 0) {
-    container.innerHTML = `<div style="padding: 1.5rem; color: var(--fg-dim); text-align: center; font-family: var(--font-mono); font-size: 0.8rem;">No matching files. Try 'go', 'hnsw', 'redis', or 'md'</div>`;
-    renderTelescopePreview(null);
-    return;
-  }
-
-  if (telescopeSelectedIndex >= filteredTelescopeFiles.length) {
-    telescopeSelectedIndex = 0;
-  }
-
-  container.innerHTML = filteredTelescopeFiles.map((f, i) => `
-    <div class="telescope-item ${i === telescopeSelectedIndex ? 'selected' : ''}" data-index="${i}">
-      <span class="telescope-item-icon">${f.icon}</span>
-      <div class="telescope-item-info">
-        <span class="telescope-item-path">${f.path}</span>
-        <span class="telescope-item-cat">${f.category}</span>
-      </div>
-    </div>
-  `).join("");
-
-  container.querySelectorAll(".telescope-item").forEach(item => {
-    item.addEventListener("click", () => {
-      telescopeSelectedIndex = parseInt(item.dataset.index, 10);
-      updateTelescopeSelection();
-      confirmTelescopeSelection();
-    });
-    item.addEventListener("mouseenter", () => {
-      telescopeSelectedIndex = parseInt(item.dataset.index, 10);
-      updateTelescopeSelection();
-    });
-  });
-
-  renderTelescopePreview(filteredTelescopeFiles[telescopeSelectedIndex]);
-}
-
-function updateTelescopeSelection() {
-  const container = document.getElementById("telescope-results-list");
-  if (!container) return;
-  const items = container.querySelectorAll(".telescope-item");
-  items.forEach((item, i) => {
-    if (i === telescopeSelectedIndex) {
-      item.classList.add("selected");
-      item.scrollIntoView({ block: "nearest" });
-    } else {
-      item.classList.remove("selected");
-    }
-  });
-
-  renderTelescopePreview(filteredTelescopeFiles[telescopeSelectedIndex]);
-}
-
-function renderTelescopePreview(file) {
-  const pathEl = document.getElementById("preview-file-path");
-  const badgeEl = document.getElementById("preview-file-badge");
-  const iconEl = document.getElementById("preview-file-icon");
-  const codeEl = document.getElementById("telescope-preview-code");
-
-  if (!file) {
-    if (pathEl) pathEl.textContent = "No file selected";
-    if (codeEl) codeEl.innerHTML = "";
-    return;
-  }
-
-  if (pathEl) pathEl.textContent = file.path;
-  if (badgeEl) badgeEl.textContent = file.language.toUpperCase();
-  if (iconEl) iconEl.textContent = file.icon;
-
-  if (codeEl) {
-    const lines = file.content.split("\\n");
-    codeEl.innerHTML = lines.map((line, idx) => `
-      <div class="code-preview-line">
-        <span class="code-line-num">${idx + 1}</span>
-        <span>${escapeHtml(line)}</span>
-      </div>
-    `).join("");
-  }
-}
-
-function confirmTelescopeSelection() {
-  const modal = document.getElementById("telescope-modal");
-  if (modal) modal.classList.remove("open");
-  updateNvimMode("NORMAL");
-
-  const file = filteredTelescopeFiles[telescopeSelectedIndex];
-  if (!file) return;
-
-  if (file.path.startsWith("blogs/")) {
-    if (file.path.includes("postgres")) openArticleModal("postgres-cache-miss-storm");
-    else if (file.path.includes("hnsw")) openArticleModal("hnsw-vector-index-go");
-    else if (file.path.includes("raft")) openArticleModal("dag-job-queue-heartbeat");
-    else activateBuffer("blogs");
-    showToastNotification(`[Telescope] Opened ${file.path}`);
-  } else if (file.path === "resume.txt") {
-    openResumeModal();
-    showToastNotification(`[Telescope] Opened terminal resume`);
-  } else if (file.path === "skills.json") {
-    activateBuffer("skills.json");
-    scrollToId("skills");
-    showToastNotification(`[Telescope] Switched to skills.json`);
-  } else if (file.path === "competitive_programming.cpp") {
-    activateBuffer("competitive_programming.cpp");
-    scrollToId("competitive");
-    showToastNotification(`[Telescope] Switched to competitive_programming.cpp`);
-  } else if (file.path.includes("llm-relay")) {
-    activateBuffer("projects.rs");
-    scrollToId("widget-llm-relay");
-    showToastNotification(`[Telescope] Opened LLM Relay source`);
-  } else if (file.path.includes("queue")) {
-    activateBuffer("projects.rs");
-    scrollToId("widget-distributed-job-queue");
-    showToastNotification(`[Telescope] Opened Distributed Job Queue source`);
-  } else if (file.path.includes("sync")) {
-    activateBuffer("projects.rs");
-    scrollToId("widget-stream-sync");
-    showToastNotification(`[Telescope] Opened StreamSync source`);
-  } else {
-    showToastNotification(`[Telescope] Selected ${file.path}`);
-  }
-}
 
 /* ==========================================================================
    HARPOON QUICK-MENU (<leader>h / :harpoon)
@@ -2477,6 +1843,12 @@ function initHarpoon() {
   const modal = document.getElementById("harpoon-modal");
 
   if (closeBtn) closeBtn.addEventListener("click", () => modal.classList.remove("open"));
+
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("open");
+    });
+  }
 
   const listEl = document.getElementById("harpoon-list");
   if (listEl) {
@@ -2523,63 +1895,6 @@ function jumpHarpoon(num) {
   showToastNotification(`[Harpoon] Jumped to mark [${num}] ${mark.name}`);
 }
 
-/* ==========================================================================
-   OIL.NVIM FILE MANAGER (:oil / :ex / <leader>e)
-   ========================================================================== */
-function openOilModal() {
-  const fileRows = [
-    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "cmd/llm-relay/", action: () => { closeAllModals(); openTelescope(); } },
-    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "internal/cache/", action: () => { closeAllModals(); openTelescope(); } },
-    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "internal/queue/", action: () => { closeAllModals(); openTelescope(); } },
-    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "pkg/sync/", action: () => { closeAllModals(); openTelescope(); } },
-    { type: "d", perms: "drwxr-xr-x", size: "4.0K", name: "blogs/", action: () => { closeAllModals(); activateBuffer("blogs"); } },
-    { type: "-", perms: "-rw-r--r--", size: "1.4K", name: "divyanshu.go", action: () => { closeAllModals(); activateBuffer("overview"); } },
-    { type: "-", perms: "-rw-r--r--", size: "2.8K", name: "projects.rs", action: () => { closeAllModals(); activateBuffer("projects"); } },
-    { type: "-", perms: "-rw-r--r--", size: "3.1K", name: "skills.json", action: () => { closeAllModals(); activateBuffer("skills"); } },
-    { type: "-", perms: "-rw-r--r--", size: "1.2K", name: "competitive_programming.cpp", action: () => { closeAllModals(); activateBuffer("competitive_programming.cpp"); } },
-    { type: "-", perms: "-rw-r--r--", size: "2.1K", name: "resume.txt", action: () => { closeAllModals(); openResumeModal(); } },
-    { type: "-", perms: "-rw-r--r--", size: "842B", name: "init.lua", action: () => { closeAllModals(); showToastNotification("[Oil] init.lua: Neovim runtime loaded"); } },
-  ];
-
-  const html = `
-<div style="font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6;">
-  <div style="color: var(--yellow); font-weight: 700; margin-bottom: 0.75rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem; display: flex; justify-content: space-between;">
-    <span>oil:///home/divyanshu/portfolio/</span>
-    <span style="color: var(--fg-dim); font-size: 0.72rem;">[Click row to open]</span>
-  </div>
-  <table style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr style="color: var(--fg-dim); font-size: 0.7rem; border-bottom: 1px solid var(--border); text-align: left;">
-        <th style="padding: 0.3rem 0.5rem;">PERMS</th>
-        <th style="padding: 0.3rem 0.5rem; text-align: right;">SIZE</th>
-        <th style="padding: 0.3rem 0.75rem;">NAME</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${fileRows.map(r => `
-        <tr class="oil-row" style="cursor: pointer; transition: background 0.15s ease;" onmouseover="this.style.background='var(--bg-surface)'" onmouseout="this.style.background='transparent'">
-          <td style="padding: 0.35rem 0.5rem; color: var(--fg-dim); font-size: 0.74rem;">${r.perms}</td>
-          <td style="padding: 0.35rem 0.5rem; text-align: right; color: var(--fg-muted); font-size: 0.74rem;">${r.size}</td>
-          <td style="padding: 0.35rem 0.75rem; font-weight: 600; color: ${r.type === 'd' ? 'var(--blue)' : 'var(--fg-bright)'};">
-            ${r.type === 'd' ? '📁 ' : '📄 '}${r.name}
-          </td>
-        </tr>
-      `).join("")}
-    </tbody>
-  </table>
-  <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); color: var(--fg-dim); font-size: 0.72rem; text-align: center;">
-    Press [Esc] to exit Oil file manager · Type <strong>:Telescope</strong> for fuzzy search
-  </div>
-</div>
-  `;
-
-  openNvimFloat("nvim://oil:///home/divyanshu/portfolio/", "oil.nvim [DIR]", html);
-
-  const rows = document.querySelectorAll(".oil-row");
-  rows.forEach((row, i) => {
-    row.addEventListener("click", fileRows[i].action);
-  });
-}
 
 /* ==========================================================================
    GIT BLAME & GITSIGNS (:blame / :gitsigns)
