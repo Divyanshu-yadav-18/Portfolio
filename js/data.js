@@ -235,176 +235,74 @@ When a new client enters a watch party room where the host is 43 minutes into a 
       title: "I Built a Semantic Cache That Confidently Told Users Berlin is Paris",
       subtitle: "And exactly why that happened — and how I fixed it.",
       date: "November 14, 2026",
-      readTime: "12 min read",
+      readTime: "10 min read",
       category: "Distributed Systems",
       diagram: {
         title: "TWO-PHASE SEMANTIC CACHE LOOKUP",
-        nodes: ["Embed Query", "▶ HNSW ANN Search", "▶ Cosine Similarity Gate", "▶ Query Text Verification", "▶ Cache HIT / MISS"]
+        nodes: ["Embed Query", "▶ HNSW ANN Search", "▶ Cosine Gate", "▶ Query Verification", "▶ HIT / MISS"]
       },
       summary: "My semantic cache embedded 'capital of France?' and 'capital of Germany?' to vectors with 0.94 cosine similarity — and happily served Paris for both. Here's how discarding the original query text turned an ANN index into a confident liar, and the two-phase fix that stopped it.",
-      content: `### The Setup
+      content: `I was building **LLM Relay**, a self-hosted API gateway in Go that proxies requests across multiple LLM providers — Groq, Gemini, Ollama, Anthropic — behind a single OpenAI-compatible endpoint. One URL, any model, no vendor lock-in.
 
-I was building **LLM Relay**, a self-hosted API gateway in Go that proxies requests across multiple LLM providers — Groq, Gemini, Ollama, Anthropic — behind a single OpenAI-compatible endpoint. One URL, any model, no vendor lock-in.
+One of the features I wanted was a **semantic cache**. Instead of caching only *exact* queries, you cache by *meaning*. If someone asks "What's machine learning?" and later someone asks "Can you explain ML to me?", the second person gets the cached answer. No LLM call needed. Zero cost. Near-zero latency.
 
-One of the features I wanted was a **semantic cache**. Instead of caching only *exact* queries, you cache by *meaning*. If someone asks "What's machine learning?" and later someone else asks "Can you explain ML to me?", the second person should get the first person's cached answer. No LLM call needed. Zero cost. Near-zero latency.
-
-I built it. It worked. I was proud of it.
-
-Then I asked it two questions.
+I built it. It worked. I was proud of it. Then I asked it two questions.
 
 ---
 
 ### The Question That Broke Everything
 
-\\\`\\\`\\\`bash
-# Question 1
-curl http://localhost:8080/v1/chat/completions \\
-  -d '{"model": "qwen3.6-27b", "messages": [{"role": "user", "content": "What is the capital of France?"}]}'
+I asked: **"What is the capital of France?"** — got back *"The capital of France is Paris."* Cache stored it. Great.
 
-# Response: "The capital of France is Paris."
-# Cache stores this. Great.
+A minute later I asked: **"What is the capital of Germany?"** — got back *"The capital of France is Paris."* From cache. With a confident \`X-Cache: HIT\` header.
 
-# Question 2 — asked a minute later
-curl http://localhost:8080/v1/chat/completions \\
-  -d '{"model": "qwen3.6-27b", "messages": [{"role": "user", "content": "What is the capital of Germany?"}]}'
-
-# Response (from cache, X-Cache: HIT):
-# "The capital of France is Paris."
-\\\`\\\`\\\`
-
-The cache returned **Paris for Germany**.
-
-My first thought was that this was a threshold problem. My second thought — after actually thinking about it — was that this revealed something fundamental about how semantic search works. The gap between those two thoughts is what this post is about.
+The cache returned **Paris for Germany**. And it was sure about it.
 
 ---
 
-### What the Code Actually Did
+### What Went Wrong
 
-Here's the semantic cache, simplified to its core:
+The bug was embarrassingly simple. My cache had two paths — a read path and a write path. The write path embedded the question into a vector, stored the **response** in Redis, and inserted the **vector** into HNSW. But it never stored the **original question text**. The question got converted into a 1536-dimensional vector and then thrown away forever.
 
-\\\`\\\`\\\`go
-func (c *Cache) Get(ctx context.Context, text string) (string, error) {
-    // Step 1: Embed the incoming question into a vector
-    emb, _ := c.provider.Embed(ctx, "text-embedding-3-small", text)
-
-    // Step 2: Find the nearest neighbor in the HNSW index
-    ids, dists := c.hnsw.Search(emb, 1)
-
-    // Step 3: If it's similar enough, return the cached response
-    sim := 1 - dists[0] // cosine similarity
-    if sim >= c.config.SimilarityThreshold {
-        val, _ := c.redisClient.Get(ctx, ids[0]).Result()
-        return val, nil // ← HERE IS THE PROBLEM
-    }
-    return "", nil
-}
-\\\`\\\`\\\`
-
-And the write path:
-
-\\\`\\\`\\\`go
-func (c *Cache) Put(ctx context.Context, text string, payload []byte) error {
-    emb, _ := c.provider.Embed(ctx, "text-embedding-3-small", text)
-    id := generateUUID()
-    c.redisClient.Set(ctx, id, payload, ttl)  // stores ONLY the response
-    c.hnsw.Insert(emb, id)
-    return nil
-}
-\\\`\\\`\\\`
-
-Spot the bug?
-
-The \\\`Put\\\` method stores the **response payload** in Redis and the **embedding vector** in HNSW — but nowhere does it store the **original question text**. The question is converted to a vector and then thrown away.
-
-When "capital of Germany?" arrives, the system embeds it, searches HNSW, finds the nearest vector (which belongs to "capital of France?"), checks that cosine similarity ≥ 0.90... it's 0.94... and returns Paris. The system has no record that the question it's answering was about Germany at all.
+So when "capital of Germany?" arrived, the system embedded it, searched the HNSW index, found the nearest vector (which belonged to "capital of France?"), checked cosine similarity — 0.94, above my 0.90 threshold — and confidently returned Paris. The system had no record that the question it was answering was about Germany at all.
 
 ---
 
-### Why the Vectors Are So Close
+### Why 0.94 Similarity Between France and Germany?
 
-This surprised me when I measured it. 0.94 cosine similarity between France and Germany? That feels wrong.
+This is the part that surprised me. 0.94? For two different countries? That feels wrong.
 
-It makes complete sense when you think about what a text embedding actually captures.
+It makes complete sense when you think about what embeddings actually capture. The sentence structure is identical: *"What is the capital of [COUNTRY]?"* — same grammar, same question word, same preposition. One word out of eight differs. In 1536-dimensional space, that's barely a nudge.
 
-An embedding model is trained to place semantically *related* concepts near each other in vector space. "France" and "Germany" are both European countries. Both are democracies. Both appear together constantly in training data — politics articles, geography textbooks, travel blogs, EU news.
+More importantly, "France" and "Germany" aren't random words. They're both European countries, both democracies, both appear together constantly in training data — EU news, geography textbooks, political articles. The embedding model places them in the same neighborhood because they genuinely *are* semantically related.
 
-More importantly, **the sentence structure is identical**:
-
-\\\`\\\`\\\`
-"What is the capital of [COUNTRY]?"
-\\\`\\\`\\\`
-
-The model sees the same grammatical pattern, the same question word, the same preposition, the same noun. One word out of eight isn't enough to push the vectors far apart in 1536-dimensional space.
-
-Think of embeddings as representing the *topic* and *intent* of a sentence, not its exact propositional content. "Capital of France?" and "Capital of Germany?" have the same topic (European capitals) and the same intent (asking for a capital city). They're in the same neighborhood. That's correct behavior from the embedding model — it's doing its job.
-
-The problem isn't the embedding. The problem is what I did with it.
+Think of embeddings as capturing *topic* and *intent*, not exact propositional content. Both questions have the same topic (European capitals) and the same intent (asking for a capital city). The embedding model was doing its job correctly. The problem was what I did with the result.
 
 ---
 
-### The Mistake: Using ANN as Judge and Jury
+### The Real Mistake: ANN as Judge and Jury
 
-I was using HNSW (Hierarchical Navigable Small World) as my vector index. HNSW is an **Approximate Nearest Neighbor** algorithm — designed to find the vector most geometrically similar to your query, fast, across millions of entries.
+HNSW is an **Approximate Nearest Neighbor** algorithm. The word "approximate" is doing a lot of work, and I wasn't paying attention to it.
 
-The word "approximate" is doing a lot of work there, and I wasn't paying attention to it.
+ANN search is an **index**. Its job is to narrow a search space from N entries to a handful of candidates, fast. It was never designed to judge semantic equivalence. You're supposed to *do something* with the candidates it returns.
 
-ANN search is an **index**. Its job is to narrow a search space from N entries to a handful of candidates. It was never designed to be a judge of semantic equivalence. You're supposed to do something with the candidates it returns.
-
-My code was using ANN as both the index *and* the judge. That's like using a full-text search index to find documents with similar words, and then — without reading the actual documents — concluding they must have the same meaning.
+My code was using ANN as both the index *and* the judge. Found a close vector? Return the cached response. No questions asked — literally. That's like using a full-text search index to find documents with similar words, and then — without reading the actual documents — concluding they must mean the same thing.
 
 ---
 
 ### The Fix: Two-Phase Lookup
 
-The fix is conceptually simple once you see the problem: **store the original question alongside the response, and verify it before returning anything**.
+The fix was conceptually simple once I saw the problem: **store the original question alongside the response, and verify it before returning anything.**
 
-\\\`\\\`\\\`go
-// entry is what we actually store in Redis now.
-type entry struct {
-    Query    string \\\`json:"query"\\\`
-    Response string \\\`json:"response"\\\`
-}
+**Phase 1 — Vector gate** (fast, approximate): Embed the query, search HNSW, check cosine similarity. If it's below threshold, skip. This eliminates 99% of lookups instantly.
 
-func (c *Cache) Get(ctx context.Context, text string) (string, error) {
-    emb, _ := c.provider.Embed(ctx, c.config.EmbeddingModel, text)
-    ids, dists := c.hnsw.Search(emb, 1)
-
-    // Phase 1: Coarse gate — not even geometrically close, skip
-    sim := 1 - dists[0]
-    if sim < c.config.SimilarityThreshold {
-        return "", nil
-    }
-
-    // Phase 2: Read the stored entry with original question
-    raw, err := c.redisClient.Get(ctx, ids[0]).Result()
-    if err != nil {
-        return "", nil
-    }
-
-    var e entry
-    json.Unmarshal([]byte(raw), &e)
-
-    // Verify: does the stored question actually match?
-    if !queriesMatch(text, e.Query) {
-        return "", nil // ANN said "close" but questions differ
-    }
-    return e.Response, nil
-}
-\\\`\\\`\\\`
+**Phase 2 — Text verification** (exact, cheap): Pull the stored entry from Redis — which now includes the original question text. Compare the stored question against the incoming question. If they don't match, refuse to serve the cached answer.
 
 Now trace through the Germany question again:
 
-\\\`\\\`\\\`
-Query: "What is the capital of Germany?"
+Phase 1: cosine sim between "capital of Germany?" and "capital of France?" = 0.94 ≥ 0.90 → **passes the vector gate**.
 
-Phase 1: sim = 0.94 ≥ 0.90 → passes
-Phase 2: Redis.Get(uuid-1) →
-         { query: "What is the capital of France?", response: "...Paris..." }
-         queriesMatch("capital of germany", "capital of france")
-           → diffCount = 1 ("germany" ≠ "france")
-           → returns false
-         → cache MISS → LLM call → "Berlin" ✓
-\\\`\\\`\\\`
+Phase 2: Redis returns the stored entry: \`{ query: "What is the capital of France?", response: "...Paris..." }\`. Compare "capital of germany" against "capital of france" → one word differs → **verification fails** → cache MISS → LLM call → **"The capital of Germany is Berlin."** ✓
 
 Paris stays in Paris. Berlin is Berlin.
 
@@ -416,49 +314,41 @@ This bug exposed a mental model error I'd been carrying: I thought semantic cach
 
 Semantic caching is a **retrieval problem**, not a **decision problem**. The vector search retrieves candidates. Something else has to make the decision.
 
-Production implementations (GPTCache, Langchain's Redis cache, Cohere's reranking pipeline) all use this two-step pattern:
+Production implementations — GPTCache, Langchain's Redis cache, Cohere's reranking pipeline — all use this two-step pattern. Retrieve with vectors, verify with text. My word-diff heuristic handles the France/Germany substitution case, but a production system would use a **cross-encoder re-ranker** — a model that reads both strings *jointly* and understands that "France" and "Germany" refer to different entities, even if the sentence structure is identical.
 
-**Step 1 — Retrieve** (fast, approximate, in vector space): Run ANN search. Get the top-k candidates. O(log N) even with millions of entries.
-
-**Step 2 — Rerank/Verify** (slower, exact, in text space): Read the actual stored queries. Determine if any are truly equivalent to the incoming query.
-
-My word-diff heuristic handles the substitution case (France → Germany) but falls apart on paraphrases. A production system would use a **cross-encoder re-ranker** — a model that reads both strings *jointly* and outputs a similarity score based on shared meaning, not geometric proximity.
-
-The tradeoff is real though: a cross-encoder adds another model inference to every cache lookup. For a cache whose entire purpose is to avoid LLM calls, that's a cost you have to weigh carefully.
+The tradeoff is real: a cross-encoder adds model inference to every cache lookup. For a cache whose entire purpose is to *avoid* model calls, that's a cost you weigh carefully.
 
 ---
 
 ### The Deeper Principle
 
-The bug is an instance of a broader failure mode in ML systems: **using an approximation as if it were exact**.
+The bug is an instance of a broader failure mode: **using an approximation as if it were exact.**
 
-ANN search approximates nearest-neighbor search. Embedding similarity approximates semantic equivalence. Thresholds approximate decision boundaries. Each approximation is useful — that's why we use them. But composing three approximations in sequence, then treating the result as ground truth, is how you end up confidently telling someone that Berlin is Paris.
+ANN approximates nearest-neighbor search. Embedding similarity approximates semantic equivalence. Thresholds approximate decision boundaries. Each is useful — that's why we use them. But stacking three approximations and treating the output as ground truth is how you end up confidently telling someone that Berlin is Paris.
 
-The fix isn't to remove the approximations. It's to be honest about what each layer can and cannot decide, and to add an exact verification step where a final decision must be made.
+The fix isn't removing the approximations. It's being honest about what each layer can and cannot decide, and adding verification where a final decision must be made.
 
 ANN to narrow the field. Verification to make the call.
 
-Same principle as: use a database index to find candidate rows quickly, but execute the actual \\\`WHERE\\\` clause to filter them correctly. Nobody would skip the \\\`WHERE\\\` clause because the index was fast. I was skipping the equivalent of the \\\`WHERE\\\` clause.
+Same principle as: use a database index to find candidate rows quickly, but execute the actual \`WHERE\` clause to filter them correctly. Nobody would skip the \`WHERE\` clause because the index was fast. I was skipping the equivalent of the \`WHERE\` clause.
 
 ---
 
 ### What I'd Do Differently
 
-If I were starting the semantic cache over:
+1. **Always store the original query text.** Costs a few hundred bytes in Redis. It's the only source of truth you have.
 
-1. **Always store the original query text.** Costs almost nothing — a few hundred bytes in Redis — and it's the only source of truth you have.
+2. **Treat ANN as retrieval, not decision.** Get candidates — maybe top-5 instead of top-1 — and then decide.
 
-2. **Treat ANN as retrieval, not decision.** Use it to get candidates — maybe top-5 instead of top-1 — and then decide.
+3. **Ship strict, loosen gradually.** A 0.98 threshold only catches near-exact duplicates — boring but always correct. Lower it after validating on real traffic.
 
-3. **Ship with a strict threshold and loosen it gradually.** 0.98 basically only catches near-exact duplicates — boring but always correct. Lower it only after validating on real traffic.
-
-4. **Log cache hits with stored + incoming queries.** Would have surfaced the France/Germany problem in my logs much earlier.
+4. **Log cache hits with both queries.** Would have surfaced this problem in my logs immediately, instead of me reasoning about it from first principles.
 
 5. **Eventually, add a cross-encoder.** The embedding model tells you what neighborhood to search. The cross-encoder tells you which door to knock on.
 
 ---
 
-The semantic cache is still the most interesting part of this project to me — not because it was hard to build, but because the bug taught me something I hadn't fully understood. The intuition that "similar vectors = same meaning" is seductive and mostly true and occasionally very wrong. The occasions where it's wrong are exactly the ones where it matters most.
+The semantic cache is still the most interesting part of this project — not because it was hard to build, but because the bug taught me something I hadn't fully understood. The intuition that "similar vectors = same meaning" is seductive and mostly true and occasionally very wrong. The occasions where it's wrong are exactly the ones where it matters most.
 
 *LLM Relay is open source: [github.com/Divyanshu-yadav-18/llm_relay](https://github.com/Divyanshu-yadav-18/llm_relay)*`
     }
