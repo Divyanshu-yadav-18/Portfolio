@@ -346,6 +346,52 @@ button {
   border-color: var(--yellow);
 }
 
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-active);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.45);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  user-select: none;
+}
+
+.avatar-wrapper:hover .avatar-placeholder {
+  transform: scale(1.02);
+  border-color: var(--yellow);
+}
+
+.avatar-placeholder .avatar-prompt {
+  font-size: 0.95rem;
+  color: var(--green);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.avatar-placeholder .avatar-initials {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--yellow);
+  line-height: 1;
+  letter-spacing: 0.05em;
+}
+
+.avatar-placeholder .avatar-sub {
+  font-size: 0.68rem;
+  color: var(--fg-muted);
+  text-transform: lowercase;
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
 /* Bracket focus corners around avatar */
 .avatar-bracket-tl, .avatar-bracket-tr, .avatar-bracket-bl, .avatar-bracket-br {
   position: absolute;
@@ -2277,14 +2323,7 @@ body.zen-mode .window-frame {
   border-color: var(--green);
 }
 
-/* ==========================================================================
-   CRIMSON MODE STATUSLINE
-   ========================================================================== */
-.status-section.status-mode.mode-bankai {
-  background: #dc143c !important;
-  color: #0a0608 !important;
-  text-shadow: 0 0 8px rgba(220, 20, 60, 0.6);
-}
+
 
 
 /* ==========================================================================

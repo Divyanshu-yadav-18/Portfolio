@@ -19,13 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
   initMatrixEffect();
   initStatuslineModeToggle();
   initHarpoon();
-  initAvatarEasterEgg();
 });
 
 /* --- Theme Management --- */
 function initTheme() {
   const savedTheme = localStorage.getItem("portfolio-theme") || "gruvbox-dark";
-  setTheme(savedTheme, false);
+  const validThemes = ["gruvbox-dark", "gruvbox-light", "neovim-dark"];
+  setTheme(validThemes.includes(savedTheme) ? savedTheme : "gruvbox-dark", false);
 
   const themeBtn = document.getElementById("theme-toggle-btn");
   if (themeBtn) {
@@ -34,7 +34,6 @@ function initTheme() {
       let next = "gruvbox-dark";
       if (current === "gruvbox-dark") next = "gruvbox-light";
       else if (current === "gruvbox-light") next = "neovim-dark";
-      else if (current === "neovim-dark") next = "bankai";
       else next = "gruvbox-dark";
       setTheme(next, true);
     });
@@ -42,37 +41,27 @@ function initTheme() {
 }
 
 function setTheme(themeName, showToast = true) {
-  document.documentElement.setAttribute("data-theme", themeName);
-  localStorage.setItem("portfolio-theme", themeName);
+  const validThemes = ["gruvbox-dark", "gruvbox-light", "neovim-dark"];
+  const theme = validThemes.includes(themeName) ? themeName : "gruvbox-dark";
+
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("portfolio-theme", theme);
 
   const label = document.getElementById("current-theme-label");
   if (label) {
-    if (themeName === "gruvbox-light") label.textContent = "Gruvbox Light";
-    else if (themeName === "neovim-dark") label.textContent = "Neovim Dark";
-    else if (themeName === "bankai") label.textContent = "Crimson";
+    if (theme === "gruvbox-light") label.textContent = "Gruvbox Light";
+    else if (theme === "neovim-dark") label.textContent = "Neovim Dark";
     else label.textContent = "Gruvbox Dark";
-  }
-
-  // Update statusline mode badge for crimson theme
-  const modeEl = document.getElementById("status-mode-val");
-  if (modeEl) {
-    if (themeName === "bankai") {
-      modeEl.textContent = "CRIMSON";
-      modeEl.classList.add("mode-bankai");
-    } else {
-      if (modeEl.textContent === "CRIMSON") modeEl.textContent = "NORMAL";
-      modeEl.classList.remove("mode-bankai");
-    }
   }
 
   // Update meta color-scheme
   const metaScheme = document.querySelector('meta[name="color-scheme"]');
   if (metaScheme) {
-    metaScheme.content = themeName === "gruvbox-light" ? "light" : "dark";
+    metaScheme.content = theme === "gruvbox-light" ? "light" : "dark";
   }
 
   if (showToast) {
-    showToastNotification(`Theme switched to: ${themeName}`);
+    showToastNotification(`Theme switched to: ${theme}`);
   }
 }
 
@@ -616,8 +605,6 @@ const VIM_COMMANDS = [
   { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard palette", action: () => setTheme("gruvbox-dark") },
   { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light palette", action: () => setTheme("gruvbox-light") },
   { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight Dark palette", action: () => setTheme("neovim-dark") },
-  { cmd: ":theme crimson", desc: "🔴 Switch to Crimson Dark palette", action: () => activateBankai() },
-  { cmd: ":crimson", desc: "🔴 Activate Crimson Dark theme", action: () => activateBankai() },
   { cmd: ":curl", desc: "Copy terminal curl command for resume.txt", action: () => copyCurlCommand() },
   { cmd: ":noh", desc: "Clear Vim search match highlights", action: () => clearVimSearch() },
   { cmd: ":so", desc: "Source init.lua runtime configuration", action: () => showToastNotification("[Neovim] Sourced init.lua successfully (0.42ms)") },
@@ -730,10 +717,6 @@ function initCommandPalette() {
 
     if (lower.startsWith(":theme ")) {
       const themeArg = lower.replace(/^:theme\s+/, "").trim();
-      if (themeArg === "bankai" || themeArg === "crimson") {
-        activateBankai();
-        return;
-      }
       if (["gruvbox-dark", "gruvbox-light", "neovim-dark", "neovim"].includes(themeArg)) {
         setTheme(themeArg === "neovim" ? "neovim-dark" : themeArg);
         return;
@@ -1253,8 +1236,8 @@ function showLazyModal() {
       <span style="color: var(--fg-muted); font-size: 0.78rem;">Git branch status &amp; atomic commit tracking</span>
     </div>
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
-      <span style="color: var(--red); font-weight: 600;">● crimson-dark.nvim</span>
-      <span style="color: var(--fg-muted); font-size: 0.78rem;">Crimson dark warm terminal color scheme</span>
+      <span style="color: var(--red); font-weight: 600;">● nvim-treesitter</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Syntax highlighting and AST code inspection</span>
     </div>
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
       <span style="color: var(--blue); font-weight: 600;">● zen-mode.nvim</span>
@@ -1511,23 +1494,6 @@ function showToastNotification(message) {
     toast.style.transition = "all 0.2s ease";
     setTimeout(() => toast.remove(), 250);
   }, 2800);
-}
-
-/* ==========================================================================
-   CRIMSON THEME ACTIVATION
-   ========================================================================== */
-function activateBankai() {
-  // Flash animation
-  const flash = document.createElement("div");
-  flash.className = "bankai-flash";
-  document.body.appendChild(flash);
-  setTimeout(() => flash.remove(), 1300);
-
-  // Set theme with delay for dramatic effect
-  setTimeout(() => {
-    setTheme("bankai", false);
-    showToastNotification("🔴 Crimson Dark theme activated.");
-  }, 400);
 }
 
 /* ==========================================================================
@@ -1813,18 +1779,6 @@ function startStreamSyncWidget() {
   }, 500);
 }
 
-/* ==========================================================================
-   AVATAR EASTER EGG (Click avatar -> Crimson theme)
-   ========================================================================== */
-function initAvatarEasterEgg() {
-  const avatarWrapper = document.getElementById("profile-avatar-wrapper");
-  if (avatarWrapper) {
-    avatarWrapper.addEventListener("click", () => {
-      activateBankai();
-    });
-  }
-}
-
 
 /* ==========================================================================
    HARPOON QUICK-MENU (<leader>h / :harpoon)
@@ -2000,8 +1954,8 @@ function showShopModal() {
   </div>
 
   <div style="margin-top: 1.25rem; text-align: center; display: flex; gap: 0.75rem; justify-content: center;">
-    <button class="btn-primary" onclick="closeAllModals(); activateBankai();" style="background: #dc143c; border-color: #dc143c; color: #fff;">
-      🔴 Activate Crimson Theme
+    <button class="btn-primary" onclick="closeAllModals();">
+      Close Window
     </button>
   </div>
 </div>
