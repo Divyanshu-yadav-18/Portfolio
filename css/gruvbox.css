@@ -152,7 +152,7 @@
 }
 
 /* =============================================
-   Bankai Crimson Theme (:bankai)
+   Crimson Dark Theme (:crimson)
    ============================================= */
 [data-theme="bankai"] {
   color-scheme: dark;
@@ -202,7 +202,7 @@
   --card-shadow: 0 4px 25px rgba(220, 20, 60, 0.15);
 }
 
-/* Bankai activation animation overlay */
+/* Crimson activation animation overlay */
 .bankai-flash {
   position: fixed;
   inset: 0;
@@ -219,7 +219,7 @@
   100% { opacity: 0; transform: scale(1); }
 }
 
-/* Bankai mode glow pulse on avatar */
+/* Crimson mode glow pulse on avatar */
 [data-theme="bankai"] .avatar-img {
   box-shadow: 0 0 20px rgba(220, 20, 60, 0.5), 0 0 60px rgba(220, 20, 60, 0.2);
   border-color: #dc143c;
@@ -232,7 +232,7 @@
   border-color: #dc143c;
 }
 
-/* Bankai pulsing energy on key elements */
+/* Crimson pulsing energy on key elements */
 [data-theme="bankai"] .ascii-header {
   text-shadow: 0 0 15px rgba(220, 20, 60, 0.4), 0 0 40px rgba(220, 20, 60, 0.15);
 }

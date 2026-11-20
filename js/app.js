@@ -49,18 +49,18 @@ function setTheme(themeName, showToast = true) {
   if (label) {
     if (themeName === "gruvbox-light") label.textContent = "Gruvbox Light";
     else if (themeName === "neovim-dark") label.textContent = "Neovim Dark";
-    else if (themeName === "bankai") label.textContent = "⚔ Bankai";
+    else if (themeName === "bankai") label.textContent = "Crimson";
     else label.textContent = "Gruvbox Dark";
   }
 
-  // Update statusline mode badge for bankai
+  // Update statusline mode badge for crimson theme
   const modeEl = document.getElementById("status-mode-val");
   if (modeEl) {
     if (themeName === "bankai") {
-      modeEl.textContent = "BANKAI";
+      modeEl.textContent = "CRIMSON";
       modeEl.classList.add("mode-bankai");
     } else {
-      if (modeEl.textContent === "BANKAI") modeEl.textContent = "NORMAL";
+      if (modeEl.textContent === "CRIMSON") modeEl.textContent = "NORMAL";
       modeEl.classList.remove("mode-bankai");
     }
   }
@@ -602,7 +602,7 @@ const VIM_COMMANDS = [
   { cmd: ":resume", desc: "Open interactive printable resume viewer (resume.pdf)", action: () => openResumeModal() },
   { cmd: ":checkhealth", desc: "Run comprehensive diagnostic health check on tech stack", action: () => showCheckhealthModal() },
   { cmd: ":lazy", desc: "Inspect loaded Neovim plugins and startup profile", action: () => showLazyModal() },
-  { cmd: ":smile", desc: "Kisuke Urahara fortune & ASCII wisdom", action: () => showSmileModal() },
+  { cmd: ":smile", desc: "Random engineering fortune & ASCII art", action: () => showSmileModal() },
   { cmd: ":matrix", desc: "Trigger fullscreen digital rain terminal breach", action: () => startMatrixRain() },
   { cmd: ":zen", desc: "Toggle distraction-free Zen mode reading view", action: () => toggleZenMode() },
   { cmd: ":bd", desc: "Unload current buffer and return to main overview", action: () => closeCurrentBuffer() },
@@ -612,12 +612,12 @@ const VIM_COMMANDS = [
   { cmd: ":harpoon", desc: "📌 Harpoon buffer quick-jump (<leader>h)", action: () => openHarpoon() },
   { cmd: ":blame", desc: "⌥ Toggle Git blame virtual text annotations", action: () => toggleGitBlame() },
   { cmd: ":gitsigns", desc: "⌥ Toggle Git blame virtual text and diff signs", action: () => toggleGitBlame() },
-  { cmd: ":shop", desc: "🏪 Kisuke Urahara Shōten inventory & inventions", action: () => showShopModal() },
+  { cmd: ":shop", desc: "🏪 Portfolio extras & tools", action: () => showShopModal() },
   { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard palette", action: () => setTheme("gruvbox-dark") },
   { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light palette", action: () => setTheme("gruvbox-light") },
   { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight Dark palette", action: () => setTheme("neovim-dark") },
-  { cmd: ":theme bankai", desc: "⚔ Switch to Bankai Crimson Reiatsu palette", action: () => activateBankai() },
-  { cmd: ":bankai", desc: "⚔ Activate Bankai — Crimson Reiatsu theme shift", action: () => activateBankai() },
+  { cmd: ":theme crimson", desc: "🔴 Switch to Crimson Dark palette", action: () => activateBankai() },
+  { cmd: ":crimson", desc: "🔴 Activate Crimson Dark theme", action: () => activateBankai() },
   { cmd: ":curl", desc: "Copy terminal curl command for resume.txt", action: () => copyCurlCommand() },
   { cmd: ":noh", desc: "Clear Vim search match highlights", action: () => clearVimSearch() },
   { cmd: ":so", desc: "Source init.lua runtime configuration", action: () => showToastNotification("[Neovim] Sourced init.lua successfully (0.42ms)") },
@@ -730,7 +730,7 @@ function initCommandPalette() {
 
     if (lower.startsWith(":theme ")) {
       const themeArg = lower.replace(/^:theme\s+/, "").trim();
-      if (themeArg === "bankai") {
+      if (themeArg === "bankai" || themeArg === "crimson") {
         activateBankai();
         return;
       }
@@ -755,7 +755,7 @@ function initCommandPalette() {
       return;
     }
 
-    if (lower === ":shop" || lower === ":urahara") {
+    if (lower === ":shop" || lower === ":toolbox") {
       showShopModal();
       return;
     }
@@ -1205,8 +1205,8 @@ function showCheckhealthModal() {
     <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Video Transcode</strong>: FFmpeg multi-bitrate HLS adaptive live stream pipelines</div>
     <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Competitive Programming</strong>: Codeforces Specialist (Rating 1584 · Handle: Sh0ckwave · 500+ solved)</div>
     <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Education</strong>: IIIT Bhubaneswar (B.Tech CSE '27 · CGPA 7.9/10)</div>
-    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Avatar</strong>: Kisuke Urahara (12th Division Captain / Gotei 13) equipped</div>
-    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Coffee Level</strong>: 98.4% (Freshly brewed, ready for production workloads)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Profile</strong>: Divyanshu Yadav (Backend & Systems Engineer)</div>
+    <div><span style="color: var(--green); font-weight: 700;">● OK</span> <strong>Status</strong>: Available for backend & systems engineering roles</div>
   </div>
 
   <div style="color: var(--yellow); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
@@ -1253,8 +1253,8 @@ function showLazyModal() {
       <span style="color: var(--fg-muted); font-size: 0.78rem;">Git branch status &amp; atomic commit tracking</span>
     </div>
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
-      <span style="color: var(--red); font-weight: 600;">● urahara-bleach.nvim</span>
-      <span style="color: var(--fg-muted); font-size: 0.78rem;">Kisuke tactical hat, Bankai concurrency gear &amp; tea</span>
+      <span style="color: var(--red); font-weight: 600;">● crimson-dark.nvim</span>
+      <span style="color: var(--fg-muted); font-size: 0.78rem;">Crimson dark warm terminal color scheme</span>
     </div>
     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem;">
       <span style="color: var(--blue); font-weight: 600;">● zen-mode.nvim</span>
@@ -1309,7 +1309,7 @@ i / v / Esc       Switch into INSERT / VISUAL / NORMAL mode
   <pre style="background: var(--bg-surface); padding: 0.75rem; border-radius: 4px; border: 1px solid var(--border); font-size: 0.78rem; overflow-x: auto;">
 :checkhealth      Run complete diagnostic health check on engineering stack
 :lazy             Inspect installed Neovim plugins and startup times
-:smile            Kisuke Urahara fortune &amp; ASCII art
+:smile            Random engineering fortune &amp; ASCII art
 :matrix, :hack    Activate full-screen falling digital terminal matrix
 :zen              Toggle distraction-free Zen mode
 :theme &lt;name&gt;     Switch themes (gruvbox-dark, gruvbox-light, neovim)
@@ -1328,21 +1328,21 @@ function showSmileModal() {
 <div style="font-family: var(--font-mono); text-align: center; padding: 1.5rem 1rem;">
   <pre style="color: var(--green); font-size: 0.95rem; line-height: 1.3; display: inline-block; text-align: left;">
        .---.
-      /_____\\       👒 KISUKE URAHARA
-     ( ^ _ ^ )      "Shopkeeper &amp; Former 12th Division Captain"
-     /|  🍵  |\\
+      /_____\\       🖥️  DIVYANSHU YADAV
+     ( ^ _ ^ )      "Backend & Systems Engineer"
+     /|  ☕  |\\
     / |_____| \\
       |     |
   </pre>
   <blockquote style="margin-top: 1.5rem; font-style: italic; color: var(--yellow); font-size: 1.05rem; border: none; padding: 0; line-height: 1.6;">
-    "There is nothing, but fear is a reflection of one's own weakness.<br>
-    Prepare for every eventuality, build systems that don't fail under pressure, and always drink your green tea."
+    "Build systems that don't fail under pressure.<br>
+    Test what you ship. Ship what you test. And always have coffee ready."
   </blockquote>
   <div style="margin-top: 1rem; color: var(--fg-muted); font-size: 0.8rem;">
-    — Bleach (Tite Kubo) · Dedicated to high-throughput concurrency
+    — Dedicated to high-throughput concurrency & reliable backends
   </div>
   <div style="color: var(--fg-dim); font-size: 0.75rem; margin-top: 1.5rem;">
-    Vim is great! Press &lt;Esc&gt; or type :q to dismiss.
+    Press &lt;Esc&gt; or type :q to dismiss.
   </div>
 </div>`;
   openNvimFloat("nvim://smile", "smile.txt", html);
@@ -1514,7 +1514,7 @@ function showToastNotification(message) {
 }
 
 /* ==========================================================================
-   BANKAI ACTIVATION
+   CRIMSON THEME ACTIVATION
    ========================================================================== */
 function activateBankai() {
   // Flash animation
@@ -1526,7 +1526,7 @@ function activateBankai() {
   // Set theme with delay for dramatic effect
   setTimeout(() => {
     setTheme("bankai", false);
-    showToastNotification("⚔ BANKAI — Benihime Crimson Princess activated. All systems drenched in reiatsu.");
+    showToastNotification("🔴 Crimson Dark theme activated.");
   }, 400);
 }
 
@@ -1814,7 +1814,7 @@ function startStreamSyncWidget() {
 }
 
 /* ==========================================================================
-   AVATAR EASTER EGG (Click Kisuke Urahara -> Bankai)
+   AVATAR EASTER EGG (Click avatar -> Crimson theme)
    ========================================================================== */
 function initAvatarEasterEgg() {
   const avatarWrapper = document.getElementById("profile-avatar-wrapper");
@@ -1935,79 +1935,77 @@ function toggleGitBlame() {
 }
 
 /* ==========================================================================
-   KISUKE URAHARA SHŌTEN INVENTORY MODAL (:shop)
+   PORTFOLIO TOOLBOX MODAL (:shop)
    ========================================================================== */
 function showShopModal() {
   const html = `
 <div style="font-family: var(--font-mono); line-height: 1.6;">
   <div style="color: var(--green); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
     ==============================================================================
-    <span style="color: var(--fg-bright);">浦原商店 // KISUKE URAHARA INVENTIONS & LABS</span>
+    <span style="color: var(--fg-bright);">toolbox // SYSTEMS & INFRASTRUCTURE</span>
   </div>
   <p style="color: var(--fg-muted); font-size: 0.8rem; margin-bottom: 1rem;">
-    <em>"There is nothing in this world that is truly 'perfect'. That's why we create."</em> — Kisuke Urahara
-    <br>
-    Welcome to Urahara Shōten. Here are our cutting-edge systems and spirit artifacts:
+    Core systems and tools I work with daily:
   </p>
   <div style="display: flex; flex-direction: column; gap: 0.85rem;">
     <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>1. 転神体 (Tenshintai)</span>
-        <span style="color: var(--aqua); font-size: 0.72rem;">Stress Test Harness</span>
+        <span>1. HNSW Vector Index</span>
+        <span style="color: var(--aqua); font-size: 0.72rem;">Semantic Cache Engine</span>
       </div>
       <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Force-materializes distributed system state into an accelerated 3-day chaos engineering sandbox. Warning: High CPU load.
+        Custom in-memory approximate nearest neighbor index in pure Go. Sub-millisecond cosine similarity lookups for semantic prompt deduplication.
       </p>
     </div>
 
     <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>2. 崩玉 (Hōgyoku) Prototype</span>
-        <span style="color: var(--purple); font-size: 0.72rem;">Self-Healing Cache</span>
+        <span>2. DAG Task Engine</span>
+        <span style="color: var(--purple); font-size: 0.72rem;">Distributed Job Queue</span>
       </div>
       <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Non-deterministic autonomous runtime memory optimizer. Dissolves the barrier between hardware constraints and software desires.
+        Fault-tolerant directed acyclic graph scheduler with heartbeat-based worker recovery, atomic Lua state machines, and dead-letter queues.
       </p>
     </div>
 
     <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>3. 義骸 (Gigai)</span>
-        <span style="color: var(--green); font-size: 0.72rem;">Lightweight Container Isolation</span>
+        <span>3. Token-Bucket Rate Limiter</span>
+        <span style="color: var(--green); font-size: 0.72rem;">Redis Lua Scripts</span>
       </div>
       <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Zero-overhead Linux namespace container for spirit-thread processes, avoiding host kernel detection.
+        Distributed per-tenant rate limiting via atomic Lua scripts in Redis, with PostgreSQL-backed transactional accounting.
       </p>
     </div>
 
     <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>4. 帰換針 (Kikanshinki)</span>
-        <span style="color: var(--orange); font-size: 0.72rem;">Atomic Memory Rollback</span>
+        <span>4. Circuit Breaker</span>
+        <span style="color: var(--orange); font-size: 0.72rem;">Resilience Pattern</span>
       </div>
       <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Distributed two-phase transaction coordinator capable of rolling back human memory to an uncorrupted snapshot.
+        Three-state circuit breaker (Closed/Open/Half-Open) with automated provider fallback chains and exponential backoff retries.
       </p>
     </div>
 
     <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
       <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>5. 義魂丸 (Soul-Candy / Gikongan)</span>
-        <span style="color: var(--blue); font-size: 0.72rem;">Mock Background Daemon</span>
+        <span>5. HLS Transcode Pipeline</span>
+        <span style="color: var(--blue); font-size: 0.72rem;">FFmpeg + Nginx</span>
       </div>
       <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Drop-in green thread worker to handle routine background tasks and mock client responses while main thread battles bugs.
+        Multi-bitrate adaptive streaming pipeline with FFmpeg transcoding, Nginx segment caching, and WebSocket clock synchronization.
       </p>
     </div>
   </div>
 
   <div style="margin-top: 1.25rem; text-align: center; display: flex; gap: 0.75rem; justify-content: center;">
     <button class="btn-primary" onclick="closeAllModals(); activateBankai();" style="background: #dc143c; border-color: #dc143c; color: #fff;">
-      ⚔ Release Bankai (Benihime)
+      🔴 Activate Crimson Theme
     </button>
   </div>
 </div>
   `;
 
-  openNvimFloat("nvim://shop/urahara", "urahara_shoten.nfo", html);
+  openNvimFloat("nvim://shop/extras", "portfolio_extras.nfo", html);
 }
