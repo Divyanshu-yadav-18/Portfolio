@@ -18,18 +18,18 @@
   <meta name="color-scheme" content="dark light">
   <script>
     try {
-      const savedTheme = localStorage.getItem("portfolio-theme");
-      if (savedTheme && ["gruvbox-dark", "gruvbox-light", "neovim-dark"].includes(savedTheme)) {
-        document.documentElement.setAttribute("data-theme", savedTheme);
-      } else {
-        document.documentElement.setAttribute("data-theme", "gruvbox-dark");
+      let savedTheme = localStorage.getItem("portfolio-theme");
+      if (savedTheme === "bankai" || savedTheme === "crimson" || !["gruvbox-dark", "gruvbox-light", "neovim-dark"].includes(savedTheme)) {
+        savedTheme = "gruvbox-dark";
+        localStorage.setItem("portfolio-theme", "gruvbox-dark");
       }
+      document.documentElement.setAttribute("data-theme", savedTheme);
     } catch (e) {}
   </script>
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/gruvbox.css?v=2.6">
-  <link rel="stylesheet" href="css/main.css?v=2.6">
+  <link rel="stylesheet" href="css/gruvbox.css?v=3.0">
+  <link rel="stylesheet" href="css/main.css?v=3.0">
 
   <!-- Structured Data JSON-LD for SEO -->
   <script type="application/ld+json">
@@ -132,23 +132,6 @@
         </div>
 
         <div class="profile-card-grid">
-          <!-- Terminal Monogram Avatar with Bracket Focus -->
-          <div class="avatar-wrapper" id="profile-avatar-wrapper">
-            <span class="avatar-bracket-tl"></span>
-            <span class="avatar-bracket-tr"></span>
-            <span class="avatar-bracket-bl"></span>
-            <span class="avatar-bracket-br"></span>
-            <div class="avatar-placeholder" aria-label="Divyanshu Yadav initials avatar">
-              <span class="avatar-prompt">&gt;_</span>
-              <span class="avatar-initials">DY</span>
-              <span class="avatar-sub">sys.go</span>
-            </div>
-            <div class="avatar-status-pill">
-              <span class="pulse-dot"></span>
-              <span>Available</span>
-            </div>
-          </div>
-
           <!-- Profile Details -->
           <div class="profile-info">
             <p class="headline-text">
@@ -161,6 +144,10 @@
                 <span>🎓</span>
                 <span>IIIT Bhubaneswar '27</span>
                 <span class="pill-val">(CGPA: 7.9)</span>
+              </span>
+              <span class="meta-pill">
+                <span class="pulse-dot"></span>
+                <span style="color: var(--green);">Available for Roles</span>
               </span>
             </div>
 
@@ -653,7 +640,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Scripts -->
-  <script src="js/data.js?v=2.6"></script>
-  <script src="js/app.js?v=2.6"></script>
+  <script src="js/data.js?v=3.0"></script>
+  <script src="js/app.js?v=3.0"></script>
 </body>
 </html>

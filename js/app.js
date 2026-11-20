@@ -23,6 +23,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* --- Theme Management --- */
 function initTheme() {
+  try {
+    const t = localStorage.getItem("portfolio-theme");
+    if (t === "bankai" || t === "crimson") {
+      localStorage.setItem("portfolio-theme", "gruvbox-dark");
+    }
+  } catch (e) {}
+
   const savedTheme = localStorage.getItem("portfolio-theme") || "gruvbox-dark";
   const validThemes = ["gruvbox-dark", "gruvbox-light", "neovim-dark"];
   setTheme(validThemes.includes(savedTheme) ? savedTheme : "gruvbox-dark", false);
@@ -601,7 +608,6 @@ const VIM_COMMANDS = [
   { cmd: ":harpoon", desc: "📌 Harpoon buffer quick-jump (<leader>h)", action: () => openHarpoon() },
   { cmd: ":blame", desc: "⌥ Toggle Git blame virtual text annotations", action: () => toggleGitBlame() },
   { cmd: ":gitsigns", desc: "⌥ Toggle Git blame virtual text and diff signs", action: () => toggleGitBlame() },
-  { cmd: ":shop", desc: "🏪 Portfolio extras & tools", action: () => showShopModal() },
   { cmd: ":theme gruvbox-dark", desc: "Switch to Gruvbox Dark Hard palette", action: () => setTheme("gruvbox-dark") },
   { cmd: ":theme gruvbox-light", desc: "Switch to Gruvbox Light palette", action: () => setTheme("gruvbox-light") },
   { cmd: ":theme neovim", desc: "Switch to Neovim TokyoNight Dark palette", action: () => setTheme("neovim-dark") },
@@ -735,11 +741,6 @@ function initCommandPalette() {
 
     if (lower === ":blame" || lower === ":gitsigns" || lower === ":git") {
       toggleGitBlame();
-      return;
-    }
-
-    if (lower === ":shop" || lower === ":toolbox") {
-      showShopModal();
       return;
     }
 
@@ -1886,80 +1887,4 @@ function toggleGitBlame() {
   } else {
     showToastNotification("[gitsigns] Blame virtual text OFF");
   }
-}
-
-/* ==========================================================================
-   PORTFOLIO TOOLBOX MODAL (:shop)
-   ========================================================================== */
-function showShopModal() {
-  const html = `
-<div style="font-family: var(--font-mono); line-height: 1.6;">
-  <div style="color: var(--green); font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
-    ==============================================================================
-    <span style="color: var(--fg-bright);">toolbox // SYSTEMS & INFRASTRUCTURE</span>
-  </div>
-  <p style="color: var(--fg-muted); font-size: 0.8rem; margin-bottom: 1rem;">
-    Core systems and tools I work with daily:
-  </p>
-  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>1. HNSW Vector Index</span>
-        <span style="color: var(--aqua); font-size: 0.72rem;">Semantic Cache Engine</span>
-      </div>
-      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Custom in-memory approximate nearest neighbor index in pure Go. Sub-millisecond cosine similarity lookups for semantic prompt deduplication.
-      </p>
-    </div>
-
-    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>2. DAG Task Engine</span>
-        <span style="color: var(--purple); font-size: 0.72rem;">Distributed Job Queue</span>
-      </div>
-      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Fault-tolerant directed acyclic graph scheduler with heartbeat-based worker recovery, atomic Lua state machines, and dead-letter queues.
-      </p>
-    </div>
-
-    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>3. Token-Bucket Rate Limiter</span>
-        <span style="color: var(--green); font-size: 0.72rem;">Redis Lua Scripts</span>
-      </div>
-      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Distributed per-tenant rate limiting via atomic Lua scripts in Redis, with PostgreSQL-backed transactional accounting.
-      </p>
-    </div>
-
-    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>4. Circuit Breaker</span>
-        <span style="color: var(--orange); font-size: 0.72rem;">Resilience Pattern</span>
-      </div>
-      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Three-state circuit breaker (Closed/Open/Half-Open) with automated provider fallback chains and exponential backoff retries.
-      </p>
-    </div>
-
-    <div style="background: var(--bg-surface); border: 1px solid var(--border); padding: 0.6rem 0.85rem; border-radius: 4px;">
-      <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--yellow);">
-        <span>5. HLS Transcode Pipeline</span>
-        <span style="color: var(--blue); font-size: 0.72rem;">FFmpeg + Nginx</span>
-      </div>
-      <p style="color: var(--fg); font-size: 0.78rem; margin-top: 0.25rem;">
-        Multi-bitrate adaptive streaming pipeline with FFmpeg transcoding, Nginx segment caching, and WebSocket clock synchronization.
-      </p>
-    </div>
-  </div>
-
-  <div style="margin-top: 1.25rem; text-align: center; display: flex; gap: 0.75rem; justify-content: center;">
-    <button class="btn-primary" onclick="closeAllModals();">
-      Close Window
-    </button>
-  </div>
-</div>
-  `;
-
-  openNvimFloat("nvim://shop/extras", "portfolio_extras.nfo", html);
 }
